@@ -1,10 +1,29 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Yuji+Syuku&display=swap');
+
+h1 {
+  font-family: 'Yuji Syuku', serif;
+}
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* Custom global styles */
+:root {
+  --background-color: #000000;
+}
+
+html,
 body {
-  @apply bg-brand-dark text-white font-sans;
+  @apply bg-black text-white font-sans;
+  background-color: var(--background-color);
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+/* Ensure all sections and divs inherit the black background */
+section,
+div {
+  background-color: inherit;
 }
