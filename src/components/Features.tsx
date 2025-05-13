@@ -3,20 +3,20 @@ import { FC } from 'react';
 
 const features = [
   {
-    title: 'zkTLS Security',
-    desc: 'Zero-knowledge TLS keeps your on-chain data verifiable while preserving privacy.',
+    title: 'ZeroGarden',
+    desc: 'zkTLS を用いたAPIレスなwebアプリケーションの構築',
   },
   {
-    title: 'Seamless Wallet UX',
-    desc: 'One-click social login and gas-abstracted transactions remove friction for gamers.',
+    title: 'parameter protocol',
+    desc: 'Autonomous Worldsの構築を目的としたコンポーザビリティを提供するFull On-chain gameの開発',
   },
   {
-    title: 'Asset Economy',
-    desc: 'Native NFT marketplace & royalty engine enable true ownership and sustainable revenue.',
+    title: '新規事業開発コンサルティング',
+    desc: 'トークンやNFTを活用した新規事業開発を支援',
   },
   {
-    title: 'Scalable L2 Infrastructure',
-    desc: 'Optimistic rollup backend processes thousands of TPS with sub-cent fees.',
+    title: 'Research',
+    desc: '企業向けにブロックチェーン事業の導入のためのリサーチを提供',
   },
 ];
 

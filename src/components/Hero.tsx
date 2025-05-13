@@ -1,5 +1,5 @@
 'use client';
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState, useEffect } from 'react';
 import { gsap } from 'gsap';
 import dynamic from 'next/dynamic';
 const Matrix = dynamic(() => import('./Matrix'), { ssr: false });
@@ -38,6 +38,12 @@ const glitchText = (text: string, intensity: number = 0.3) => {
 export default function Hero() {
   const scope = useRef<HTMLDivElement>(null);
   const [glitchedTexts, setGlitchedTexts] = useState<string[]>([]);
+  const [transforms, setTransforms] = useState<number[]>([]);
+
+  // クライアントサイドでのみ実行される初期化
+  useEffect(() => {
+    setTransforms(Array.from({ length: 40 }, () => Math.random() * 10 - 5));
+  }, []);
 
   useLayoutEffect(() => {
     // より頻繁に文字化けを更新
@@ -91,7 +97,9 @@ export default function Hero() {
               textOrientation: 'upright',
               letterSpacing: '0.1em',
               lineHeight: '1.4em',
-              transform: `translateX(${Math.random() * 10 - 5}px)`,
+              transform: transforms[i]
+                ? `translateX(${transforms[i]}px)`
+                : 'none',
               textShadow: '0 0 5px rgba(0, 255, 0, 0.5)',
             }}
           >
@@ -111,7 +119,7 @@ export default function Hero() {
           <br />
           自発的な協力によって、可能な限り最短の時間で、
           <br />
-          100%が世界をうまく利用できるようにする。
+          100%世界をうまく利用できるようにする。
         </p>
       </div>
     </section>
