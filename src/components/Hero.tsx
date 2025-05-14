@@ -1,8 +1,6 @@
 'use client';
 import { useLayoutEffect, useRef, useState, useEffect } from 'react';
 import { gsap } from 'gsap';
-import dynamic from 'next/dynamic';
-const Matrix = dynamic(() => import('./Matrix'), { ssr: false });
 
 // 好きな文字や文章をここに設定（カンマ区切りで複数の文章を設定可能）
 const CUSTOM_TEXTS = [
