@@ -7,49 +7,50 @@ export default function Contact() {
   return (
     <section
       id="contact"
-      className="py-28 scroll-mt-16 border-t border-white/5 bg-[linear-gradient(180deg,rgba(62,240,140,0.03),transparent_40%)]"
+      className="relative py-32 scroll-mt-16 border-t border-white/5 overflow-hidden"
     >
-      <div className="container mx-auto px-6 max-w-6xl">
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(62,240,140,0.04),transparent_50%)]" />
+      <div className="relative container mx-auto px-6 max-w-6xl">
         <SectionHeading index="04" title="Contact" subtitle="お問い合わせ" />
 
         <Reveal>
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 md:p-12 flex flex-col md:flex-row items-center gap-12">
-            <div className="relative w-40 h-40 shrink-0 rounded-full overflow-hidden ring-2 ring-accent/40 ring-offset-4 ring-offset-ink">
+          <p className="text-xl md:text-2xl text-white/70 mb-6">
+            ワールド・ゲームを、一緒に。
+          </p>
+          <a
+            href={`mailto:${contact.email}`}
+            className="link-underline inline-block font-mono text-[clamp(1.4rem,5vw,4rem)] font-bold text-white hover:text-accent transition-colors break-all"
+          >
+            {contact.email}
+          </a>
+        </Reveal>
+
+        <Reveal delay={150} className="mt-20">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-8 pt-10 border-t border-white/10">
+            <div className="relative w-20 h-20 shrink-0 rounded-full overflow-hidden ring-1 ring-accent/40">
               <Image
                 src="/images/profile.jpg"
                 alt={contact.name}
                 fill
-                sizes="160px"
+                sizes="80px"
                 className="object-cover"
               />
             </div>
-
-            <div className="flex-1 w-full grid gap-6 sm:grid-cols-2">
+            <div className="flex flex-wrap gap-x-14 gap-y-6">
               <div>
-                <h3 className="font-mono text-xs tracking-[0.25em] text-white/50 mb-2">
+                <h3 className="font-mono text-[0.65rem] tracking-[0.3em] text-white/40 mb-1">
                   NAME
                 </h3>
                 <p className="text-white/90">{contact.name}</p>
               </div>
               <div>
-                <h3 className="font-mono text-xs tracking-[0.25em] text-white/50 mb-2">
+                <h3 className="font-mono text-[0.65rem] tracking-[0.3em] text-white/40 mb-1">
                   LOCATION
                 </h3>
                 <p className="text-white/90">{contact.location}</p>
               </div>
               <div>
-                <h3 className="font-mono text-xs tracking-[0.25em] text-white/50 mb-2">
-                  EMAIL
-                </h3>
-                <a
-                  href={`mailto:${contact.email}`}
-                  className="text-accent hover:underline"
-                >
-                  {contact.email}
-                </a>
-              </div>
-              <div>
-                <h3 className="font-mono text-xs tracking-[0.25em] text-white/50 mb-2">
+                <h3 className="font-mono text-[0.65rem] tracking-[0.3em] text-white/40 mb-1">
                   SOCIAL
                 </h3>
                 <div className="flex gap-5">

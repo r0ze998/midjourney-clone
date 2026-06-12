@@ -43,10 +43,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ja">
-      <body
-        className={`${notoSansJp.variable} ${yujiSyuku.variable} ${geistMono.variable} antialiased`}
-      >
+    <html
+      lang="ja"
+      className={`${notoSansJp.variable} ${yujiSyuku.variable} ${geistMono.variable}`}
+    >
+      <body className="antialiased scanlines">
         {children}
       </body>
     </html>

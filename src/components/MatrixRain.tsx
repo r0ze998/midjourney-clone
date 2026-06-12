@@ -26,7 +26,9 @@ export default function MatrixRain({ className }: { className?: string }) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const reducedMotion = window.matchMedia(
+      '(prefers-reduced-motion: reduce)'
+    ).matches;
 
     let columns: Column[] = [];
     let rafId = 0;
@@ -52,11 +54,7 @@ export default function MatrixRain({ className }: { className?: string }) {
       }));
     };
 
-    const draw = (time: number) => {
-      rafId = requestAnimationFrame(draw);
-      const dt = Math.min((time - lastTime) / 1000, 0.1);
-      lastTime = time;
-
+    const step = (dt: number) => {
       const h = canvas.offsetHeight;
       ctx.fillStyle = 'rgba(5, 6, 5, 0.18)';
       ctx.fillRect(0, 0, canvas.offsetWidth, h);
@@ -83,6 +81,12 @@ export default function MatrixRain({ className }: { className?: string }) {
       }
     };
 
+    const draw = (time: number) => {
+      rafId = requestAnimationFrame(draw);
+      step(Math.min((time - lastTime) / 1000, 0.1));
+      lastTime = time;
+    };
+
     const start = () => {
       cancelAnimationFrame(rafId);
       lastTime = performance.now();
@@ -92,6 +96,17 @@ export default function MatrixRain({ className }: { className?: string }) {
 
     const onVisibility = () =>
       document.visibilityState === 'visible' ? start() : stop();
+
+    // reduced-motion 時はアニメーションせず、数百フレーム分を即時計算した静止画を描く
+    if (reducedMotion) {
+      const renderStatic = () => {
+        resize();
+        for (let i = 0; i < 400; i++) step(1 / 60);
+      };
+      renderStatic();
+      window.addEventListener('resize', renderStatic);
+      return () => window.removeEventListener('resize', renderStatic);
+    }
 
     resize();
     start();
