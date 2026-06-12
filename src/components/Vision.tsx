@@ -1,32 +1,26 @@
-'use client';
-import { FC } from 'react';
+import Reveal from './Reveal';
+import SectionHeading from './SectionHeading';
+import { vision } from '../content/site';
 
-const blocks = [
-  {
-    title: 'Vision',
-    body: `現実的な経済の計算システムを構築し、
-国籍や資本に縛られず、誰もがリアルタイムに参加できる自律分散デジタル経済圏を実現する。`,
-  },
-  {
-    title: 'Mission',
-    body: `経済とインターネットを再構築する。
-“経済の計算システム”と“オープンインターネット”を再構築し、選択肢のない経済をアップグレードする。`,
-  },
-];
-
-const Vision: FC = () => (
-  <section className="py-24 bg-black text-white">
-    <div className="container mx-auto px-6 max-w-3xl">
-      {blocks.map(({ title, body }) => (
-        <div key={title} className="mb-12">
-          <h2 className="text-3xl font-bold mb-4">{title}</h2>
-          <p className="prose leading-relaxed whitespace-pre-wrap text-white">
-            {body}
-          </p>
+export default function Vision() {
+  return (
+    <section
+      id="vision"
+      className="py-28 scroll-mt-16 border-y border-white/5 bg-[linear-gradient(180deg,rgba(62,240,140,0.03),transparent_40%)]"
+    >
+      <div className="container mx-auto px-6 max-w-6xl">
+        <SectionHeading index="02" title="Vision" subtitle="ビジョン" />
+        <div className="grid gap-12 md:grid-cols-2">
+          {vision.map(({ title, body }, i) => (
+            <Reveal key={title} delay={i * 120}>
+              <h3 className="font-mono text-2xl font-bold text-accent mb-5">
+                {title}
+              </h3>
+              <p className="leading-loose text-white/80">{body}</p>
+            </Reveal>
+          ))}
         </div>
-      ))}
-    </div>
-  </section>
-);
-
-export default Vision;
+      </div>
+    </section>
+  );
+}

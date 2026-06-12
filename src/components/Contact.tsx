@@ -1,66 +1,75 @@
-'use client';
-import { FC } from 'react';
 import Image from 'next/image';
+import Reveal from './Reveal';
+import SectionHeading from './SectionHeading';
+import { contact } from '../content/site';
 
-const Contact: FC = () => {
+export default function Contact() {
   return (
-    <section className="py-24 container mx-auto px-6">
-      <h2 className="text-3xl font-bold text-center mb-12">Contact</h2>
-      <div className="max-w-4xl mx-auto">
-        <div className="flex flex-col md:flex-row items-center gap-12">
-          {/* 画像セクション */}
-          <div className="w-full md:w-1/3">
-            <div className="relative w-48 h-48 mx-auto rounded-full overflow-hidden">
+    <section
+      id="contact"
+      className="py-28 scroll-mt-16 border-t border-white/5 bg-[linear-gradient(180deg,rgba(62,240,140,0.03),transparent_40%)]"
+    >
+      <div className="container mx-auto px-6 max-w-6xl">
+        <SectionHeading index="04" title="Contact" subtitle="お問い合わせ" />
+
+        <Reveal>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 md:p-12 flex flex-col md:flex-row items-center gap-12">
+            <div className="relative w-40 h-40 shrink-0 rounded-full overflow-hidden ring-2 ring-accent/40 ring-offset-4 ring-offset-ink">
               <Image
                 src="/images/profile.jpg"
-                alt="Profile"
+                alt={contact.name}
                 fill
+                sizes="160px"
                 className="object-cover"
-                priority
               />
             </div>
-          </div>
 
-          {/* コンタクト情報セクション */}
-          <div className="w-full md:w-2/3 space-y-6">
-            <div>
-              <h3 className="text-xl font-semibold mb-2">Name</h3>
-              <p className="text-white/80">r0ze/Daichi Takehara</p>
-            </div>
-            <div>
-              <h3 className="text-xl font-semibold mb-2">Email</h3>
-              <p className="text-white/80">takehara998@gmail.com</p>
-            </div>
-            <div>
-              <h3 className="text-xl font-semibold mb-2">Location</h3>
-              <p className="text-white/80">Kyoto, Japan</p>
-            </div>
-            <div>
-              <h3 className="text-xl font-semibold mb-2">Social</h3>
-              <div className="flex gap-4">
+            <div className="flex-1 w-full grid gap-6 sm:grid-cols-2">
+              <div>
+                <h3 className="font-mono text-xs tracking-[0.25em] text-white/50 mb-2">
+                  NAME
+                </h3>
+                <p className="text-white/90">{contact.name}</p>
+              </div>
+              <div>
+                <h3 className="font-mono text-xs tracking-[0.25em] text-white/50 mb-2">
+                  LOCATION
+                </h3>
+                <p className="text-white/90">{contact.location}</p>
+              </div>
+              <div>
+                <h3 className="font-mono text-xs tracking-[0.25em] text-white/50 mb-2">
+                  EMAIL
+                </h3>
                 <a
-                  href="https://twitter.com/r0ze_____"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-white/80 hover:text-white transition-colors"
+                  href={`mailto:${contact.email}`}
+                  className="text-accent hover:underline"
                 >
-                  Twitter
+                  {contact.email}
                 </a>
-                <a
-                  href="https://x.com/r0ze_____/articles"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-white/80 hover:text-white transition-colors"
-                >
-                  Blog
-                </a>
+              </div>
+              <div>
+                <h3 className="font-mono text-xs tracking-[0.25em] text-white/50 mb-2">
+                  SOCIAL
+                </h3>
+                <div className="flex gap-5">
+                  {contact.socials.map(({ label, href }) => (
+                    <a
+                      key={href}
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-white/80 hover:text-accent transition-colors"
+                    >
+                      {label}
+                    </a>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </Reveal>
       </div>
     </section>
   );
-};
-
-export default Contact;
+}

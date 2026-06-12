@@ -1,124 +1,44 @@
-'use client';
-import { useLayoutEffect, useRef, useState, useEffect } from 'react';
-import { gsap } from 'gsap';
-
-// 好きな文字や文章をここに設定（カンマ区切りで複数の文章を設定可能）
-const CUSTOM_TEXTS = [
-  '妖精を見るには妖精の目がいる',
-  '人となりては童のことを捨てたり',
-  '117',
-  'すべては同じ木の枝',
-  'Free my mind',
-  '饒速日',
-  'The answer',
-  'yukikaze',
-  'world game',
-  '998',
-];
-
-// 文字化け用の文字セット
-const GLITCH_CHARS = 'ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ0123456789';
-
-// 文字化け効果を適用する関数
-const glitchText = (text: string, intensity: number = 0.3) => {
-  return text
-    .split('')
-    .map((char) => {
-      if (Math.random() < intensity) {
-        // より控えめな文字化けのために、1文字のみを変更
-        return GLITCH_CHARS[Math.floor(Math.random() * GLITCH_CHARS.length)];
-      }
-      return char;
-    })
-    .join('');
-};
+import MatrixRain from './MatrixRain';
+import { site } from '../content/site';
 
 export default function Hero() {
-  const scope = useRef<HTMLDivElement>(null);
-  const [glitchedTexts, setGlitchedTexts] = useState<string[]>([]);
-  const [transforms, setTransforms] = useState<number[]>([]);
-
-  // クライアントサイドでのみ実行される初期化
-  useEffect(() => {
-    setTransforms(Array.from({ length: 40 }, () => Math.random() * 10 - 5));
-  }, []);
-
-  useLayoutEffect(() => {
-    // より頻繁に文字化けを更新
-    const interval = setInterval(() => {
-      setGlitchedTexts(CUSTOM_TEXTS.map((text) => glitchText(text)));
-    }, 100);
-
-    const ctx = gsap.context(() => {
-      // Matrix-like falling animation for each text
-      gsap.utils.toArray<HTMLSpanElement>('.matrix-text').forEach((el) => {
-        gsap.fromTo(
-          el,
-          {
-            y: -100,
-            opacity: 0,
-          },
-          {
-            y: '100vh',
-            opacity: 0.9,
-            duration: gsap.utils.random(2, 4),
-            repeat: -1,
-            ease: 'none',
-            delay: gsap.utils.random(0, 2),
-            onComplete: () => {
-              gsap.set(el, { y: -100, opacity: 0 });
-            },
-          }
-        );
-      });
-    }, scope);
-
-    return () => {
-      ctx.revert();
-      clearInterval(interval);
-    };
-  }, []);
-
   return (
     <section
-      ref={scope}
-      className="relative flex items-center justify-center h-screen overflow-hidden bg-black"
+      id="top"
+      className="relative flex items-center justify-center min-h-screen overflow-hidden"
     >
-      {/* Matrix falling texts */}
-      <div className="absolute inset-0 flex flex-wrap text-xl font-mono select-none text-green-500 leading-none">
-        {Array.from({ length: 40 }).map((_, i) => (
-          <span
-            key={i}
-            className="matrix-text mx-2 whitespace-nowrap"
-            style={{
-              writingMode: 'vertical-rl',
-              textOrientation: 'upright',
-              letterSpacing: '0.1em',
-              lineHeight: '1.4em',
-              transform: transforms[i]
-                ? `translateX(${transforms[i]}px)`
-                : 'none',
-              textShadow: '0 0 5px rgba(0, 255, 0, 0.5)',
-            }}
+      <MatrixRain className="absolute inset-0 w-full h-full opacity-60" />
+      {/* 中央の文字を読みやすくするためのビネット */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(5,6,5,0.55)_0%,rgba(5,6,5,0.2)_55%,rgba(5,6,5,0.9)_100%)]" />
+
+      <div className="relative z-10 text-center px-6">
+        <p className="font-mono text-sm tracking-[0.4em] text-accent mb-6">
+          {site.nameEn.toUpperCase()}
+        </p>
+        <h1 className="font-brand text-7xl md:text-8xl text-white drop-shadow-[0_0_30px_rgba(62,240,140,0.35)] mb-10">
+          雪風
+        </h1>
+        <p className="text-base md:text-lg text-white/80 max-w-2xl mx-auto leading-loose mb-12">
+          {site.tagline}
+        </p>
+        <div className="flex flex-wrap justify-center gap-4">
+          <a
+            href="#services"
+            className="px-8 py-3 rounded-full bg-accent text-ink font-semibold hover:bg-accent/85 transition-colors"
           >
-            {glitchedTexts[Math.floor(Math.random() * glitchedTexts.length)] ||
-              CUSTOM_TEXTS[0]}
-          </span>
-        ))}
+            事業内容を見る
+          </a>
+          <a
+            href="#contact"
+            className="px-8 py-3 rounded-full border border-white/25 text-white hover:border-accent hover:text-accent transition-colors"
+          >
+            お問い合わせ
+          </a>
+        </div>
       </div>
 
-      {/* Logo / Heading */}
-      <div className="relative z-10 text-center">
-        <h1 className="text-7xl font-extrabold tracking-tight text-white drop-shadow-lg mb-12">
-          ユキカゼ
-        </h1>
-        <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed space-y-4">
-          生態系を破壊することなく、また誰の不利益も被ることなく、
-          <br />
-          自発的な協力によって、可能な限り最短の時間で、
-          <br />
-          100%世界をうまく利用できるようにする。
-        </p>
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 font-mono text-xs tracking-[0.3em] text-white/40 animate-pulse">
+        SCROLL
       </div>
     </section>
   );

@@ -1,36 +1,43 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 株式会社雪風 コーポレートサイト
 
-## Getting Started
+[Next.js](https://nextjs.org) (App Router) + [Tailwind CSS v4](https://tailwindcss.com) で構築した株式会社雪風のコーポレートサイト。
 
-First, run the development server:
+## 開発
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev      # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+```bash
+npm run build    # 本番ビルド
+npm run lint     # ESLint
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 構成
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+src/
+├── app/
+│   ├── layout.tsx        # メタデータ・フォント (Noto Sans JP / Yuji Syuku / Geist Mono)
+│   ├── page.tsx          # トップページ（セクションの組み立てのみ）
+│   └── globals.css       # Tailwind v4 テーマトークン・共通スタイル
+├── content/
+│   └── site.ts           # サイト全体のコピー・データ（文言修正はここだけ）
+└── components/
+    ├── Header.tsx        # 固定ナビゲーション（モバイルメニュー付き）
+    ├── Hero.tsx          # ヒーロー
+    ├── MatrixRain.tsx    # canvas ベースのマトリックス演出
+    ├── Services.tsx      # 事業内容
+    ├── Vision.tsx        # Vision / Mission
+    ├── About.tsx         # 会社紹介・会社概要
+    ├── Contact.tsx       # お問い合わせ
+    ├── Footer.tsx
+    ├── Reveal.tsx        # スクロールリビール（IntersectionObserver）
+    └── SectionHeading.tsx
+```
 
-## Learn More
+## 文言・コンテンツの更新
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+ナビゲーション、事業内容、Vision/Mission、会社概要、連絡先などのテキストはすべて
+`src/content/site.ts` に集約されています。コンポーネントを触らずに更新できます。
