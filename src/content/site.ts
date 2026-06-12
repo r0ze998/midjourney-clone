@@ -7,6 +7,7 @@ export const site = {
     '生態系を破壊することなく、また誰の不利益も被ることなく、自発的な協力によって、可能な限り最短の時間で、100%世界をうまく利用できるようにする。',
   description:
     '株式会社雪風は、ブロックチェーン技術を軸に、誰もが公平に参加できる新しい経済システムの構築を目指す京都のテクノロジーカンパニーです。',
+  url: 'https://www.yukikaze.games',
 } as const;
 
 export const nav = [
@@ -71,7 +72,7 @@ export const about = {
   overview: [
     { label: '社名', value: '株式会社雪風 / Yukikaze Inc.' },
     { label: '所在地', value: '京都府京都市' },
-    { label: '代表', value: '竹原 大地' },
+    { label: '代表', value: 'Daichi Takehara' },
     {
       label: '事業内容',
       value:

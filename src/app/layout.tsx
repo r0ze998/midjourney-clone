@@ -21,12 +21,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(site.url),
   title: {
     default: `${site.name} | ${site.nameEn}`,
     template: `%s | ${site.name}`,
   },
   description: site.description,
   openGraph: {
+    url: site.url,
     title: `${site.name} | ${site.nameEn}`,
     description: site.description,
     siteName: site.name,
