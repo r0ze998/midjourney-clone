@@ -34,12 +34,19 @@ export default function Rain({ className = '' }: { className?: string }) {
       tone: 0.3 + Math.random() * 0.7,
     });
 
+    // 残像の濃さ。60fps で 1 フレームあたり 0.035 暗くするのと同じ減衰を、任意の dt に換算する
+    const fadeFor = (dt: number) => 1 - Math.pow(1 - 0.035, dt * 60);
+
+    let size = { w: 0, h: 0 };
     function resize() {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const w = canvas.offsetWidth;
       const h = canvas.offsetHeight;
-      canvas.width = w * dpr;
-      canvas.height = h * dpr;
+      // スマホのツールバーの出入りで高さだけ少し変わる場合は作り直さない
+      if (w === size.w && h <= size.h) return;
+      size = { w, h };
+      const dpr = Math.min(window.devicePixelRatio || 1, w >= 1024 ? 2 : 1.5);
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.font = `${FONT}px ${getComputedStyle(canvas).fontFamily}`;
       ctx.textAlign = 'center';
@@ -47,31 +54,39 @@ export default function Rain({ className = '' }: { className?: string }) {
       cols = Array.from({ length: n }, (_, k) => spawn(k * FONT * GAP + (FONT * GAP) / 2, h));
       ctx.fillStyle = '#040604';
       ctx.fillRect(0, 0, w, h);
-      // 最初から画面全体に雨が降っているように、数秒分を先に進めておく
-      for (let k = 0; k < 1500; k++) step(1 / 60);
+      // 最初から画面全体に雨が降っているように、約20秒分を粗い刻みで先に進めておく
+      for (let k = 0; k < 100; k++) step(0.2);
     }
 
     function step(dt: number) {
-      const w = canvas.offsetWidth;
-      const h = canvas.offsetHeight;
+      const w = size.w;
+      const h = size.h;
       // 残像: 前のフレームを少しだけ暗くする
-      ctx.fillStyle = 'rgba(4, 6, 4, 0.035)';
+      ctx.fillStyle = `rgba(4, 6, 4, ${fadeFor(dt)})`;
       ctx.fillRect(0, 0, w, h);
       for (const c of cols) {
-        const prev = c.y;
+        const from = Math.floor(c.y / FONT);
         c.y += c.speed * dt;
-        // 文字ひとつ分進んだときだけ、次の文字を打つ
-        if (Math.floor(c.y / FONT) !== Math.floor(prev / FONT)) {
+        const to = Math.floor(c.y / FONT);
+        // 進んだ分のマス目すべてに文字を打つ（dt が大きくても列が途切れない）
+        for (let cell = from + 1; cell <= to; cell++) {
+          if (cell < 0) continue;
           const ch = Math.random() < 0.03 ? GLYPHS[Math.floor(Math.random() * GLYPHS.length)] : c.text[c.i % c.text.length];
           c.i++;
           ctx.fillStyle = `rgba(62, 240, 140, ${0.7 * c.tone})`;
-          ctx.fillText(ch, c.x, c.y);
+          ctx.fillText(ch, c.x, cell * FONT);
         }
         if (c.y > h + FONT * c.text.length) {
           Object.assign(c, spawn(c.x, h), { y: -Math.random() * h * 0.4 });
         }
       }
     }
+
+    let resizeTimer = 0;
+    const onResize = () => {
+      window.clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(resize, 150);
+    };
 
     const frame = (now: number) => {
       raf = requestAnimationFrame(frame);
@@ -87,19 +102,23 @@ export default function Rain({ className = '' }: { className?: string }) {
     const onVisibility = () => (document.visibilityState === 'visible' ? start() : stop());
 
     if (reduced) {
-      // 動かさず、数百フレーム分を計算した静止画を一度だけ描く
+      // 動かさず、先に進めた状態の静止画を一度だけ描く
       resize();
-      window.addEventListener('resize', resize);
-      return () => window.removeEventListener('resize', resize);
+      window.addEventListener('resize', onResize);
+      return () => {
+        window.clearTimeout(resizeTimer);
+        window.removeEventListener('resize', onResize);
+      };
     }
 
     resize();
     start();
-    window.addEventListener('resize', resize);
+    window.addEventListener('resize', onResize);
     document.addEventListener('visibilitychange', onVisibility);
     return () => {
       stop();
-      window.removeEventListener('resize', resize);
+      window.clearTimeout(resizeTimer);
+      window.removeEventListener('resize', onResize);
       document.removeEventListener('visibilitychange', onVisibility);
     };
   }, []);

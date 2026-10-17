@@ -23,7 +23,7 @@ export default function HomePage({ lang }: { lang: Lang }) {
       <ScrollVar />
 
       {/* 背景: 文字の雨。下半分と端を落として文字の居場所を作る。スクロールすると全体が暗く引いていく */}
-      <Rain className="fixed inset-0 -z-30 h-full w-full" />
+      <Rain className="fixed inset-x-0 top-0 -z-30 h-lvh w-full" />
       <div
         aria-hidden="true"
         className="fixed inset-0 -z-20 bg-[linear-gradient(180deg,rgba(4,6,4,0.25)_0%,transparent_28%,transparent_48%,rgba(4,6,4,0.88)_100%)]"
