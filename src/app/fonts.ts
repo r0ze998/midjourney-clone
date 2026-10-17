@@ -1,16 +1,16 @@
-import { Geist_Mono, Noto_Sans_JP, Shippori_Mincho } from 'next/font/google';
+import { Geist_Mono, Noto_Sans_JP, Zen_Old_Mincho } from 'next/font/google';
 
-// 本文: Noto Sans JP / 見出し: Shippori Mincho / 記録・ラベル: Geist Mono（いずれも SIL OFL 1.1）
+// 本文: Noto Sans JP / 社名・宣言: Zen Old Mincho / ラベル: Geist Mono（いずれも SIL OFL 1.1）
 export const sans = Noto_Sans_JP({
   variable: '--font-noto-sans-jp',
   subsets: ['latin'],
-  weight: ['400', '500', '700'],
+  weight: ['400', '500'],
 });
 
-export const serif = Shippori_Mincho({
-  variable: '--font-shippori',
+export const serif = Zen_Old_Mincho({
+  variable: '--font-zen-old-mincho',
   subsets: ['latin'],
-  weight: ['500', '600'],
+  weight: ['400', '900'],
 });
 
 export const mono = Geist_Mono({

@@ -4,7 +4,7 @@ import { content, site, type Lang } from '../content/site';
 const paths: Record<Lang, string> = { ja: '/', en: '/en' };
 
 export const viewport: Viewport = {
-  themeColor: '#f3f3f0',
+  themeColor: '#040604',
 };
 
 export function buildMetadata(lang: Lang): Metadata {
@@ -62,6 +62,6 @@ export function organizationJsonLd(lang: Lang) {
       '@type': 'Person',
       name: lang === 'ja' ? '竹原大智' : 'Daichi Takehara',
     },
-    sameAs: [site.social.x, site.social.github],
+    sameAs: [site.x, site.github],
   };
 }

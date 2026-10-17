@@ -28,11 +28,14 @@ src/
 │   ├── (en)/en/         # 英語のルートレイアウトとトップページ（/en）
 │   ├── global-not-found.tsx
 │   ├── robots.ts / sitemap.ts
-│   ├── fonts.ts         # Noto Sans JP / Shippori Mincho / Geist Mono
+│   ├── fonts.ts         # Noto Sans JP / Zen Old Mincho / Geist Mono
 │   └── globals.css      # 色・書体のトークン
-├── assets/              # next/image で最適化する画像（Wylls の画面）
-├── components/          # 各セクション（HomePage が lang を受けて組み立てる）
-├── content/site.ts      # 掲載情報
+├── components/
+│   ├── HomePage.tsx     # 1画面の構成（lang を受けて組み立てる）
+│   ├── Emblem.tsx       # ロゴの立体（three.js）。非対応時はロゴ画像
+│   ├── Rain.tsx         # 背景の文字の雨（canvas）
+│   └── ExternalLink.tsx
+├── content/site.ts      # 掲載情報・背景の文字列
 └── lib/metadata.ts      # メタデータ・構造化データ
 public/
 ├── images/              # ロゴ・プロフィール画像
@@ -45,3 +48,5 @@ public/
 npm run build && npm run start -- -p 3210
 CHROME_PATH=/path/to/chrome node scripts/screenshot.mjs http://localhost:3210/ /tmp/yk-shots
 ```
+
+ヘッドレスで WebGL を動かすには Chrome に `--use-gl=angle --use-angle=swiftshader` を渡します（スクリプト内で設定済み）。

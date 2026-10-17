@@ -7,7 +7,11 @@ const url = process.argv[2] ?? 'http://localhost:3210/';
 const outDir = process.argv[3] ?? '/tmp/yk-shots';
 mkdirSync(outDir, { recursive: true });
 
-const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH });
+const browser = await chromium.launch({
+  executablePath: process.env.CHROME_PATH,
+  // ヘッドレスでも WebGL（ロゴの立体）を描けるようにする
+  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
+});
 
 for (const [name, width, height] of [
   ['mobile', 390, 844],
@@ -25,7 +29,7 @@ for (const [name, width, height] of [
     }
     window.scrollTo(0, 0);
   });
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(3000); // 立体と雨が描かれるまで待つ
   await page.screenshot({ path: `${outDir}/${name}-top.png` });
   await page.screenshot({ path: `${outDir}/${name}-full.png`, fullPage: true });
   await page.close();

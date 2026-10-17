@@ -12,19 +12,19 @@ export default function GlobalNotFound() {
   return (
     <html lang="ja" className={fontVariables}>
       <body>
-        <main className="container-site flex min-h-svh flex-col justify-center py-20">
+        <main className="mx-auto flex min-h-svh max-w-[1600px] flex-col justify-center px-5 py-20 sm:px-8 lg:px-12">
           <p className="label mb-6">404</p>
-          <h1 className="display text-[clamp(1.75rem,5vw,3rem)] leading-snug">
+          <h1 className="serif text-[clamp(1.75rem,5vw,3rem)] leading-snug">
             ページが見つかりません。
           </h1>
-          <p className="mt-2 text-ink-2" lang="en">
+          <p className="mt-2 text-bone-2" lang="en">
             This page could not be found.
           </p>
           <p className="mt-10 flex gap-8">
-            <Link href="/" className="text-link">
+            <Link href="/" className="row-link font-mono text-sm">
               トップへ
             </Link>
-            <Link href="/en" className="text-link" lang="en" hrefLang="en">
+            <Link href="/en" className="row-link font-mono text-sm" lang="en" hrefLang="en">
               English
             </Link>
           </p>
