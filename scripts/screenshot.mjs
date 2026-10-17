@@ -1,42 +1,35 @@
 // デザイン確認用スクリーンショットスクリプト
-// 使い方: node scripts/screenshot.mjs [url] [出力ディレクトリ]
+// 使い方: CHROME_PATH=/path/to/chrome node scripts/screenshot.mjs [url] [出力ディレクトリ]
 import { chromium } from 'playwright-core';
-import { homedir } from 'os';
+import { mkdirSync } from 'fs';
 
 const url = process.argv[2] ?? 'http://localhost:3210/';
 const outDir = process.argv[3] ?? '/tmp/yk-shots';
-const executablePath = `${homedir()}/Library/Caches/ms-playwright/chromium_headless_shell-1208/chrome-headless-shell-mac-arm64/chrome-headless-shell`;
+mkdirSync(outDir, { recursive: true });
 
-const browser = await chromium.launch({ executablePath });
-const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
-await page.goto(url, { waitUntil: 'networkidle' });
-await page.evaluate(() => document.fonts.ready);
-await page.waitForTimeout(2500);
+const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH });
 
-// ヒーロー
-await page.screenshot({ path: `${outDir}/hero.png` });
-
-// 各セクション
-for (const id of ['services', 'vision', 'about', 'contact']) {
-  await page.evaluate((id) => {
-    document
-      .getElementById(id)
-      ?.scrollIntoView({ behavior: 'instant', block: 'start' });
-  }, id);
-  await page.waitForTimeout(1200); // reveal アニメーション待ち
-  await page.screenshot({ path: `${outDir}/${id}.png` });
+for (const [name, width, height] of [
+  ['mobile', 390, 844],
+  ['tablet', 768, 1024],
+  ['desktop', 1440, 900],
+]) {
+  const page = await browser.newPage({ viewport: { width, height } });
+  await page.goto(url, { waitUntil: 'networkidle' });
+  await page.evaluate(() => document.fonts.ready);
+  // 遅延読み込みの画像を読み込ませる
+  await page.evaluate(async () => {
+    for (let y = 0; y < document.body.scrollHeight; y += 500) {
+      window.scrollTo(0, y);
+      await new Promise((r) => setTimeout(r, 60));
+    }
+    window.scrollTo(0, 0);
+  });
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: `${outDir}/${name}-top.png` });
+  await page.screenshot({ path: `${outDir}/${name}-full.png`, fullPage: true });
+  await page.close();
 }
-
-// フッター
-await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-await page.waitForTimeout(1200);
-await page.screenshot({ path: `${outDir}/footer.png` });
-
-// モバイル
-const mobile = await browser.newPage({ viewport: { width: 390, height: 844 } });
-await mobile.goto(url, { waitUntil: 'networkidle' });
-await mobile.waitForTimeout(2500);
-await mobile.screenshot({ path: `${outDir}/mobile-hero.png` });
 
 await browser.close();
 console.log('saved to', outDir);
