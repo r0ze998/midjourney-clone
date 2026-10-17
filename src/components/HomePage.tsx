@@ -2,6 +2,8 @@ import Image from 'next/image';
 import Rain from './Rain';
 import Emblem from './Emblem';
 import ExternalLink from './ExternalLink';
+import ScrollVar from './ScrollVar';
+import Below from './Below';
 import { content, type Lang } from '../content/site';
 import { organizationJsonLd } from '../lib/metadata';
 
@@ -18,38 +20,71 @@ export default function HomePage({ lang }: { lang: Lang }) {
         {c.skip}
       </a>
 
-      {/* 背景: 文字の雨。端と中央下をわずかに落として、文字の載る場所を確保する */}
-      <Rain className="fixed inset-0 -z-20 h-full w-full" />
+      <ScrollVar />
+
+      {/* 背景: 文字の雨。下半分と端を落として文字の居場所を作る。スクロールすると全体が暗く引いていく */}
+      <Rain className="fixed inset-0 -z-30 h-full w-full" />
       <div
         aria-hidden="true"
-        className="fixed inset-0 -z-10 bg-[linear-gradient(180deg,rgba(4,6,4,0.25)_0%,transparent_28%,transparent_48%,rgba(4,6,4,0.88)_100%)]"
+        className="fixed inset-0 -z-20 bg-[linear-gradient(180deg,rgba(4,6,4,0.25)_0%,transparent_28%,transparent_48%,rgba(4,6,4,0.88)_100%)]"
       />
       <div
         aria-hidden="true"
-        className="fixed inset-0 -z-10 bg-[radial-gradient(ellipse_60%_80%_at_50%_40%,transparent_30%,rgba(4,6,4,0.7)_100%)]"
+        className="fixed inset-0 -z-20 bg-[radial-gradient(ellipse_60%_80%_at_50%_40%,transparent_30%,rgba(4,6,4,0.7)_100%)]"
+      />
+      <div
+        aria-hidden="true"
+        className="fixed inset-0 -z-20 bg-void"
+        style={{ opacity: 'calc(var(--scroll, 0) * 0.82)' }}
       />
 
-      <div className="relative mx-auto flex min-h-svh max-w-[1600px] flex-col px-5 sm:px-8 lg:px-12">
-        <header className="flex h-16 items-center justify-between lg:h-20">
+      {/* 立体（デスクトップ）: 画面に固定し、トップの中央の列と同じ位置に置く。スクロールすると右端へ寄って小さく薄くなり、透かしになる */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 -z-10 hidden lg:block"
+        style={{
+          opacity: 'calc(1 - var(--scroll, 0) * 0.72)',
+          transform: 'translateX(calc(var(--scroll, 0) * 30vw)) scale(calc(1 - var(--scroll, 0) * 0.45))',
+          transformOrigin: '50% 45%',
+        }}
+      >
+        <div className="mx-auto grid h-full max-w-[1600px] grid-cols-12 gap-x-8 px-12 pt-20">
+          <div className="col-span-4 col-start-5 flex items-center justify-center xl:col-span-6 xl:col-start-4">
+            <Emblem className="h-[min(78svh,760px)] w-full" />
+          </div>
+        </div>
+      </div>
+
+      <div id="top" className="relative mx-auto max-w-[1600px] px-5 sm:px-8 lg:px-12">
+        <header className="sticky top-0 z-30 -mx-5 flex h-16 items-center justify-between bg-void/80 px-5 backdrop-blur-sm sm:-mx-8 sm:px-8 lg:static lg:mx-0 lg:h-20 lg:bg-transparent lg:px-0 lg:backdrop-blur-none">
           <a href={lang === 'ja' ? '/' : '/en'} className="flex min-h-11 items-center gap-3">
             <Image src="/images/logo.png" alt="" width={22} height={22} className="invert mix-blend-screen opacity-90" />
             <span className="serif text-[0.9375rem] font-normal tracking-[0.08em]">{c.name}</span>
           </a>
-          <a
-            href={c.langSwitch.href}
-            hrefLang={c.langSwitch.hrefLang}
-            lang={c.langSwitch.hrefLang}
-            className="label flex min-h-11 items-center !text-bone-2 hover:!text-signal transition-colors"
-          >
-            {c.langSwitch.label}
-          </a>
+          <nav aria-label="Main" className="flex items-center gap-5 md:gap-7">
+            {c.nav.map(({ label, href }) => (
+              <a key={href} href={href} className="label hidden min-h-11 items-center !text-bone-2 transition-colors hover:!text-signal md:flex">
+                {label}
+              </a>
+            ))}
+            <a
+              href={c.langSwitch.href}
+              hrefLang={c.langSwitch.hrefLang}
+              lang={c.langSwitch.hrefLang}
+              className="label flex min-h-11 items-center !text-bone-2 transition-colors hover:!text-signal"
+            >
+              {c.langSwitch.label}
+            </a>
+          </nav>
         </header>
 
-        <main id="main" tabIndex={-1} className="flex flex-1 flex-col outline-none lg:grid lg:grid-cols-12 lg:items-end lg:gap-x-8">
-          {/* 立体: モバイルは上に、デスクトップは中央の列に */}
-          <div className="order-1 lg:order-2 lg:col-span-4 lg:col-start-5 xl:col-span-6 xl:col-start-4 lg:self-stretch flex items-center justify-center">
-            <Emblem className="aspect-[3/4] w-full max-w-[18rem] sm:max-w-[22rem] lg:aspect-auto lg:h-[min(78svh,760px)] lg:max-w-none" />
+        <main id="main" tabIndex={-1} className="outline-none">
+        <div className="flex min-h-[calc(100svh-4rem)] flex-col lg:min-h-[calc(100svh-5rem)] lg:grid lg:grid-cols-12 lg:items-end lg:gap-x-8">
+          {/* 立体: モバイルは流れの中（上）に。デスクトップは固定レイヤーに置くので、ここは場所を空けるだけ */}
+          <div className="order-1 flex items-center justify-center lg:hidden">
+            <Emblem className="aspect-[3/4] w-full max-w-[18rem] sm:max-w-[22rem]" />
           </div>
+          <div aria-hidden="true" className="hidden lg:order-2 lg:col-span-4 lg:col-start-5 lg:block lg:h-[min(78svh,760px)] xl:col-span-6 xl:col-start-4" />
 
           {/* 宣言 */}
           <section
@@ -106,6 +141,9 @@ export default function HomePage({ lang }: { lang: Lang }) {
               ))}
             </ul>
           </aside>
+        </div>
+
+        <Below c={c} />
         </main>
 
         {/* 右端の縦の一行: 旧サイトから引き継いだ社是 */}
@@ -116,16 +154,11 @@ export default function HomePage({ lang }: { lang: Lang }) {
           {c.rail}
         </p>
 
-        <footer className="flex flex-col gap-3 border-t border-rule py-5 text-[0.6875rem] text-bone-3 sm:flex-row sm:items-center sm:justify-between">
-          <dl className="flex flex-wrap gap-x-5 gap-y-1 font-mono tracking-[0.06em]">
-            {c.company.map(({ label, value }) => (
-              <div key={label} className="flex gap-2">
-                <dt className="text-bone-3/70">{label}</dt>
-                <dd className="text-bone-2">{value}</dd>
-              </div>
-            ))}
-          </dl>
+        <footer className="flex flex-col gap-3 border-t border-rule py-6 text-[0.6875rem] text-bone-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="font-mono tracking-[0.06em]">© {new Date().getFullYear()} {c.nameLatin}</p>
+          <a href="#top" className="label inline-flex min-h-11 items-center !text-bone-3 transition-colors hover:!text-signal">
+            {c.footer.top} <span aria-hidden="true" className="ml-2">↑</span>
+          </a>
         </footer>
       </div>
 

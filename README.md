@@ -31,10 +31,14 @@ src/
 │   ├── fonts.ts         # Noto Sans JP / Zen Old Mincho / Geist Mono
 │   └── globals.css      # 色・書体のトークン
 ├── components/
-│   ├── HomePage.tsx     # 1画面の構成（lang を受けて組み立てる）
+│   ├── HomePage.tsx     # トップ1画面 + 背景（lang を受けて組み立てる）
+│   ├── Below.tsx        # 考え方 / 作品 / 会社概要 / 連絡
+│   ├── Section.tsx
+│   ├── ScrollVar.tsx    # スクロール量を CSS 変数にする（背景が引いていく）
 │   ├── Emblem.tsx       # ロゴの立体（three.js）。非対応時はロゴ画像
 │   ├── Rain.tsx         # 背景の文字の雨（canvas）
 │   └── ExternalLink.tsx
+├── assets/              # Wylls の画面（next/image で最適化）
 ├── content/site.ts      # 掲載情報・背景の文字列
 └── lib/metadata.ts      # メタデータ・構造化データ
 public/
