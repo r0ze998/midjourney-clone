@@ -17,7 +17,7 @@ export default function GlobalNotFound() {
           <h1 className="serif text-[clamp(1.75rem,5vw,3rem)] leading-snug">
             ページが見つかりません。
           </h1>
-          <p className="mt-2 text-bone-2" lang="en">
+          <p className="mt-2 text-ink-2" lang="en">
             This page could not be found.
           </p>
           <p className="mt-10 flex gap-8">

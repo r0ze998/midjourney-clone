@@ -4,13 +4,13 @@ import { content, site, type Lang } from '../content/site';
 const paths: Record<Lang, string> = { ja: '/', en: '/en' };
 
 export const viewport: Viewport = {
-  themeColor: '#040604',
+  themeColor: '#f1ede3',
 };
 
 export function buildMetadata(lang: Lang): Metadata {
   const { meta } = content[lang];
   const ogImage = {
-    url: `/og/${lang}.png`,
+    url: `/og/${lang}.jpg`,
     width: 1200,
     height: 630,
     alt: meta.ogAlt,

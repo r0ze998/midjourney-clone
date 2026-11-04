@@ -19,7 +19,7 @@ export default function ExternalLink({
       {children}
       <span className="sr-only">{hint}</span>
       {arrow && (
-        <span aria-hidden="true" className="row-link-arrow ml-auto font-mono text-sm text-bone-3">
+        <span aria-hidden="true" className="row-link-arrow ml-auto font-mono text-sm text-ink-3">
           ↗
         </span>
       )}

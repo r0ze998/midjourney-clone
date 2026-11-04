@@ -1,53 +1,70 @@
 @import "tailwindcss";
 
 /*
- * 設計トークン
- * 地は漆黒、文字は骨白、光は一色の緑。緑は「信号」としてだけ使う（状態・リンクの反応・背景の雨）。
- * 面は作らない。罫線と余白と光で区切る。
+ * 設計トークン（A「昼の卓」）
+ * 地は紙、文字は墨。アクセントは一色だけ＝AIの紫。今働いているもの（AI）にだけ使う。
+ * 人の村は国の色（落ち着いた赤）で示すが、光らせない。
  */
 @theme {
-  --color-void: #040604;
-  --color-bone: #e8ece6;
-  --color-bone-2: #9aa39b;
-  --color-bone-3: #5c655d;
-  --color-rule: #1d241e;
-  --color-signal: #3ef08c;
-  --color-signal-dim: #1c5c3a;
+  --color-paper: #f1ede3;
+  --color-paper-2: #e8e3d6;
+  --color-card: #fbf9f3;
+  --color-ink: #16201c;
+  --color-ink-2: #4f5a55;
+  --color-ink-3: #6b736e;
+  --color-rule: #d6d0c1;
+  --color-ai: #7b5cff;
+  --color-ai-ink: #5a3ee0;
+  --color-human: #c9472f;
 
-  --font-sans: var(--font-noto-sans-jp), "Hiragino Sans", "Hiragino Kaku Gothic ProN",
-    "Yu Gothic", sans-serif;
+  --font-sans: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans CJK JP", "Noto Sans JP",
+    "Yu Gothic UI", "Yu Gothic", Meiryo, system-ui, sans-serif;
   --font-serif: var(--font-zen-old-mincho), "Hiragino Mincho ProN", "Yu Mincho", serif;
   --font-mono: var(--font-geist-mono), ui-monospace, "SFMono-Regular", monospace;
+
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
-    color-scheme: dark;
+    color-scheme: light;
+    scroll-padding-top: 4.5rem;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
   }
 
   body {
-    background-color: var(--color-void);
-    color: var(--color-bone);
+    background-color: var(--color-paper);
+    color: var(--color-ink);
     font-family: var(--font-sans);
     font-size: 0.9375rem;
     line-height: 1.9;
     -webkit-font-smoothing: antialiased;
   }
 
-  :lang(ja) :is(h1, p) {
+  :lang(ja) :is(h1, h2, h3, p, li, dd, figcaption, blockquote) {
     word-break: auto-phrase;
     line-break: strict;
   }
 
+  :is(h1, h2, h3) {
+    text-wrap: balance;
+  }
+
   ::selection {
-    background-color: var(--color-signal);
-    color: var(--color-void);
+    background-color: var(--color-ai);
+    color: #fff;
   }
 
   :focus-visible {
-    outline: 1px solid var(--color-signal);
-    outline-offset: 4px;
+    outline: 2px solid var(--color-ai);
+    outline-offset: 3px;
   }
 }
 
@@ -61,55 +78,92 @@
     font-family: var(--font-mono);
     font-size: 0.6875rem;
     line-height: 1.6;
-    letter-spacing: 0.22em;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: var(--color-bone-3);
+    color: var(--color-ink-3);
   }
 
-  /* 行の末尾に光る点がついたリンク */
+  .text-link {
+    text-decoration-line: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.28em;
+    text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
+    transition: color 0.15s, text-decoration-color 0.15s;
+  }
+
+  .text-link:hover {
+    color: var(--color-ai-ink);
+    text-decoration-color: currentColor;
+  }
+
+  /* 行の末尾に点がついたリンク */
   .row-link {
     display: flex;
     align-items: baseline;
     gap: 1rem;
     min-height: 2.75rem;
-    padding-block: 0.5rem;
+    padding-block: 0.55rem;
     border-top: 1px solid var(--color-rule);
-    color: var(--color-bone);
     transition: color 0.2s;
   }
 
-  .row-link::before {
-    content: "";
-    align-self: center;
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-    background: var(--color-bone-3);
-    transition: background 0.2s, box-shadow 0.2s;
-  }
-
-  .row-link:hover::before,
-  .row-link:focus-visible::before {
-    background: var(--color-signal);
-    box-shadow: 0 0 10px var(--color-signal);
+  .row-link:hover {
+    color: var(--color-ai-ink);
   }
 
   .row-link:hover .row-link-arrow {
     transform: translate(2px, -2px);
-    color: var(--color-signal);
   }
 
   .row-link-arrow {
-    transition: transform 0.2s, color 0.2s;
+    transition: transform 0.2s var(--ease-out);
   }
 
-  /* 社名の2文字: 縦の引き締めと文字詰め */
-  .wordmark {
-    font-family: var(--font-serif);
-    font-weight: 900;
-    font-feature-settings: "palt" 1;
-    letter-spacing: -0.04em;
-    line-height: 0.9;
+  /* 文章を模型の上に読ませるための地。デスクトップは左から紙色が溶け、スマホは紙の札 */
+  .over-model {
+    background: linear-gradient(90deg, var(--color-paper) 0%, var(--color-paper) 62%, color-mix(in srgb, var(--color-paper) 0%, transparent) 100%);
+  }
+
+  .slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 2.75rem;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .slider::-webkit-slider-runnable-track {
+    height: 2px;
+    background: linear-gradient(90deg, var(--color-ink) var(--fill, 0%), var(--color-rule) var(--fill, 0%));
+  }
+
+  .slider::-moz-range-track {
+    height: 2px;
+    background: var(--color-rule);
+  }
+
+  .slider::-moz-range-progress {
+    height: 2px;
+    background: var(--color-ink);
+  }
+
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    margin-top: -7px;
+    border-radius: 50%;
+    background: var(--color-paper);
+    border: 2px solid var(--color-ink);
+  }
+
+  .slider::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--color-paper);
+    border: 2px solid var(--color-ink);
   }
 }
 

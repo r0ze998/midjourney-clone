@@ -24,27 +24,26 @@ npm run build
 ```
 src/
 ├── app/
-│   ├── (ja)/            # 日本語のルートレイアウトとトップページ（/）
-│   ├── (en)/en/         # 英語のルートレイアウトとトップページ（/en）
-│   ├── global-not-found.tsx
-│   ├── robots.ts / sitemap.ts
-│   ├── fonts.ts         # Noto Sans JP / Zen Old Mincho / Geist Mono
-│   └── globals.css      # 色・書体のトークン
+│   ├── (ja)/ , (en)/en/   # 言語ごとのルートレイアウトとページ（1 時間ごとに作り直す）
+│   ├── global-not-found.tsx, robots.ts, sitemap.ts
+│   ├── fonts.ts           # Zen Old Mincho / Geist Mono（本文は端末の書体）
+│   └── globals.css        # 色・書体のトークン
+├── model/                 # Wylls の世界の模型（描画以外は純粋な関数）
+│   ├── hex.ts  world.ts  state.ts  render.ts  timeline.ts  tiers.ts  store.ts
 ├── components/
-│   ├── HomePage.tsx     # トップ1画面 + 背景（lang を受けて組み立てる）
-│   ├── Below.tsx        # 考え方 / 作品 / 会社概要 / 連絡
-│   ├── Section.tsx
-│   ├── ScrollVar.tsx    # スクロール量を CSS 変数にする（背景が引いていく）
-│   ├── Emblem.tsx       # ロゴの立体（three.js）。非対応時はロゴ画像
-│   ├── Rain.tsx         # 背景の文字の雨（canvas）
-│   └── ExternalLink.tsx
-├── assets/              # Wylls の画面（next/image で最適化）
-├── content/site.ts      # 掲載情報・背景の文字列
-└── lib/metadata.ts      # メタデータ・構造化データ
+│   ├── HomePage.tsx       # ページの構成（各セクションに data-scene）
+│   ├── WorldStage.tsx     # 画面に固定した模型。スクロールで場面が移る
+│   ├── ModelControls.tsx  # スライダー・層のボタン・読み値・自動ツアーのカーソル
+│   ├── CartVideo.tsx, ExternalLink.tsx
+├── lib/feed/              # 開発ログの取り込み（GitHub。X は後から足せる）
+├── content/site.ts        # 掲載情報（ja / en）と模型の中の英語表示
 public/
-├── images/              # ロゴ・プロフィール画像
-└── og/                  # OG画像（ja / en）
+├── model/@1x, @2x         # Wylls の地形・村のタイル
+├── media/                 # 荷車の映像、模型の止めた絵
+└── og/                    # OG画像
 ```
+
+模型の考え方と計測は `docs/redesign-2026-11.md`。
 
 ## スクリーンショット
 

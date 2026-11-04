@@ -1,16 +1,12 @@
-import { Geist_Mono, Noto_Sans_JP, Zen_Old_Mincho } from 'next/font/google';
+import { Geist_Mono, Zen_Old_Mincho } from 'next/font/google';
 
-// 本文: Noto Sans JP / 社名・宣言: Zen Old Mincho / ラベル: Geist Mono（いずれも SIL OFL 1.1）
-export const sans = Noto_Sans_JP({
-  variable: '--font-noto-sans-jp',
-  subsets: ['latin'],
-  weight: ['400', '500'],
-});
-
+// 見出し: Zen Old Mincho / ラベル・模型の英字: Geist Mono（どちらも SIL OFL 1.1）。
+// 本文は端末の日本語書体（Hiragino・Noto Sans CJK・Yu Gothic）を使う。本文用の Web フォントを
+// 読むと初回の転送量が 1MB 近く増えるため。
 export const serif = Zen_Old_Mincho({
   variable: '--font-zen-old-mincho',
   subsets: ['latin'],
-  weight: ['400', '900'],
+  weight: ['400'],
 });
 
 export const mono = Geist_Mono({
@@ -19,4 +15,4 @@ export const mono = Geist_Mono({
   weight: ['400', '500'],
 });
 
-export const fontVariables = `${sans.variable} ${serif.variable} ${mono.variable}`;
+export const fontVariables = `${serif.variable} ${mono.variable}`;
