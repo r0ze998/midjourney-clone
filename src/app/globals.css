@@ -1,21 +1,23 @@
 @import "tailwindcss";
 
 /*
- * 設計トークン（A「昼の卓」）
- * 地は紙、文字は墨。アクセントは一色だけ＝AIの紫。今働いているもの（AI）にだけ使う。
- * 人の村は国の色（落ち着いた赤）で示すが、光らせない。
+ * 設計トークン（夜の盤）
+ * 地は漆黒。文字は骨白。緑（signal）は旧サイトから引き継いだ「コードの雨」の色で、背景と小さな印にだけ使う。
+ * 紫（ai）は、今働いているAIを示す色。人の村は暖かい灯の色（human）。
+ * トークン名（paper・ink など）は明るい版から引き継ぎ、値だけ夜に置き換えている。
  */
 @theme {
-  --color-paper: #f1ede3;
-  --color-paper-2: #e8e3d6;
-  --color-card: #fbf9f3;
-  --color-ink: #16201c;
-  --color-ink-2: #4f5a55;
-  --color-ink-3: #6b736e;
-  --color-rule: #d6d0c1;
-  --color-ai: #7b5cff;
-  --color-ai-ink: #5a3ee0;
-  --color-human: #c9472f;
+  --color-paper: #050706;
+  --color-paper-2: #0c120e;
+  --color-card: #0a0f0c;
+  --color-ink: #e8ece6;
+  --color-ink-2: #a9b2aa;
+  --color-ink-3: #7d867f;
+  --color-rule: #1f2822;
+  --color-ai: #9b7bff;
+  --color-ai-ink: #b9a6ff;
+  --color-human: #e0704f;
+  --color-signal: #3ef08c;
 
   --font-sans: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans CJK JP", "Noto Sans JP",
     "Yu Gothic UI", "Yu Gothic", Meiryo, system-ui, sans-serif;
@@ -29,7 +31,7 @@
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
-    color-scheme: light;
+    color-scheme: dark;
     scroll-padding-top: 4.5rem;
   }
 
@@ -58,8 +60,8 @@
   }
 
   ::selection {
-    background-color: var(--color-ai);
-    color: #fff;
+    background-color: var(--color-signal);
+    color: var(--color-paper);
   }
 
   :focus-visible {

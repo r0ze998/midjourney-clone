@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import type { ReactNode } from 'react';
 import WorldStage from './WorldStage';
+import Rain from './Rain';
 import ModelControls, { ModelReadout, ScrubArea } from './ModelControls';
 import ExternalLink from './ExternalLink';
 import CartVideo from './CartVideo';
@@ -41,12 +42,18 @@ export default function HomePage({ lang, feed }: { lang: Lang; feed: FeedItem[] 
         {c.skip}
       </a>
 
+      {/* 背景：コードの雨（いちばん奥）→ 模型。雨は下と端を暗く落として、文字の居場所を作る */}
+      <Rain className="fixed inset-x-0 top-0 -z-30 h-lvh w-full" />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 -z-20 bg-[radial-gradient(ellipse_80%_85%_at_60%_45%,transparent_45%,rgba(5,7,6,0.55)_100%)]"
+      />
       <WorldStage />
 
       <header className="sticky top-0 z-30 border-b border-rule/70 bg-paper/85 backdrop-blur-sm">
         <div className="mx-auto flex h-14 max-w-[1440px] items-center justify-between px-5 sm:px-8 lg:h-16 lg:px-12">
           <a href={lang === 'ja' ? '/' : '/en'} className="flex min-h-11 items-center gap-2.5">
-            <Image src="/images/logo.png" alt="" width={22} height={22} className="mix-blend-multiply" priority />
+            <Image src="/images/logo.png" alt="" width={22} height={22} className="invert mix-blend-screen" priority />
             <span className="serif text-[0.9375rem] tracking-[0.08em]">{c.name}</span>
           </a>
           <nav aria-label="Main" className="flex items-center gap-5 md:gap-7">
@@ -70,6 +77,7 @@ export default function HomePage({ lang, feed }: { lang: Lang; feed: FeedItem[] 
       <main id="main" tabIndex={-1} className="outline-none">
         {/* 1. ヒーロー：模型を操作できる */}
         <section id="top" data-scene="hero" aria-labelledby="hero-title" className="relative lg:min-h-[calc(100svh-4rem)]">
+          <div aria-hidden="true" className="over-model pointer-events-none absolute inset-y-0 left-0 hidden w-[46%] lg:block" />
           <ScrubArea className="absolute inset-x-0 top-0 h-[46svh] lg:left-[38%] lg:h-full" />
           {/* JS が動かないときは、模型の止まった絵を見せ、操作の部品は隠す */}
           <noscript>
@@ -88,7 +96,7 @@ export default function HomePage({ lang, feed }: { lang: Lang; feed: FeedItem[] 
           <div className="relative mx-auto max-w-[1440px] bg-paper px-5 pb-12 pt-6 sm:px-8 lg:flex lg:min-h-[calc(100svh-4rem)] lg:flex-col lg:justify-end lg:bg-transparent lg:px-12 lg:pb-12 lg:pt-10">
             <div className="lg:max-w-[30rem]">
               <p className="label mb-5 flex items-center gap-3">
-                <span aria-hidden="true" className="inline-block h-px w-6 bg-ai" />
+                <span aria-hidden="true" className="inline-block h-px w-6 bg-signal" />
                 {c.hero.kicker}
               </p>
               <h1 id="hero-title" className="serif text-[2rem] leading-[1.4] sm:text-[2.5rem] lg:text-[2.625rem]">

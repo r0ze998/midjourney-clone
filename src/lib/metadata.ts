@@ -4,7 +4,7 @@ import { content, site, type Lang } from '../content/site';
 const paths: Record<Lang, string> = { ja: '/', en: '/en' };
 
 export const viewport: Viewport = {
-  themeColor: '#f1ede3',
+  themeColor: '#050706',
 };
 
 export function buildMetadata(lang: Lang): Metadata {

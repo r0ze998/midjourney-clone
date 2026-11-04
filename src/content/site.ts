@@ -21,6 +21,20 @@ export const site = {
   oxciv: 'https://r0ze998.github.io/0xciv/',
 } as const;
 
+// 背景に流れる文字列。旧サイトから引き継いだ社訓・断片。
+export const rainTexts = [
+  '妖精を見るには妖精の目がいる',
+  '人となりては童のことを捨てたり',
+  '117',
+  'すべては同じ木の枝',
+  'Free my mind',
+  '饒速日',
+  'The answer',
+  'yukikaze',
+  'world game',
+  '998',
+] as const;
+
 /** 模型の中の表示（英語で固定） */
 export const modelUi = {
   layers: { logistics: 'Logistics', defense: 'Defense', ai: 'AI agents' },

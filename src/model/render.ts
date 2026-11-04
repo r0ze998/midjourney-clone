@@ -25,12 +25,14 @@ export type View = {
 };
 
 export const COLORS = {
-  paper: '#f1ede3',
-  ink: '#16201c',
-  ink2: '#4f5a55',
-  rule: '#d6d0c1',
-  ai: '#7b5cff',
-  human: '#c9472f',
+  void: '#050706',
+  bone: '#e8ece6',
+  ink2: '#a3aca4',
+  rule: '#2a332c',
+  chip: 'rgba(8,12,10,0.9)',
+  ai: '#9b7bff',
+  human: '#e0704f',
+  signal: '#3ef08c',
   road: '#8a6a3e',
   cart: '#6b4a2b',
   cargo: { food: '#d9b44a', ore: '#8b9198', wood: '#9a6a3a' },
@@ -96,9 +98,9 @@ export function bakeBoard(sprites: Sprites, scale: number): HTMLCanvasElement {
   g.translate(0, 34);
   g.scale(WORLD.w / WORLD.h, 1);
   const shadow = g.createRadialGradient(0, 0, sr * 0.2, 0, 0, sr);
-  shadow.addColorStop(0, 'rgba(60,48,30,0.2)');
-  shadow.addColorStop(0.7, 'rgba(60,48,30,0.08)');
-  shadow.addColorStop(1, 'rgba(60,48,30,0)');
+  shadow.addColorStop(0, 'rgba(62,240,140,0.07)');
+  shadow.addColorStop(0.7, 'rgba(62,240,140,0.025)');
+  shadow.addColorStop(1, 'rgba(62,240,140,0)');
   g.fillStyle = shadow;
   g.beginPath();
   g.arc(0, 0, sr, 0, Math.PI * 2);
@@ -116,6 +118,15 @@ export function bakeBoard(sprites: Sprites, scale: number): HTMLCanvasElement {
     const k = s.size === 'city' ? 1.28 : s.size === 'town' ? 1.2 : 1.08;
     if (img) g.drawImage(img, x - ANCHOR_X * k, y - ANCHOR_Y * k, TILE_W * k, TILE_H * k);
   }
+  // 夜の照明：タイルだけを暗くし（source-atop）、中央に灯りのたまりを残す
+  g.globalCompositeOperation = 'source-atop';
+  const lamp = g.createRadialGradient(0, -10, WORLD.h * 0.1, 0, -10, WORLD.w * 0.62);
+  lamp.addColorStop(0, 'rgba(4,8,6,0.22)');
+  lamp.addColorStop(0.65, 'rgba(4,8,6,0.48)');
+  lamp.addColorStop(1, 'rgba(4,8,6,0.72)');
+  g.fillStyle = lamp;
+  g.fillRect(WORLD.x0, WORLD.y0, WORLD.w, WORLD.h);
+  g.globalCompositeOperation = 'source-over';
   return c;
 }
 
@@ -190,15 +201,15 @@ export function draw(f: Frame, v: View, st: ModelState) {
   ctx.drawImage(f.board, WORLD.x0, WORLD.y0, WORLD.w, WORLD.h);
   if (focus > 0) {
     // 層を取り出しているあいだは、地図を紙の色に寄せて退かせる
-    ctx.fillStyle = `rgba(241,237,227,${0.42 * focus})`;
+    ctx.fillStyle = `rgba(5,7,6,${0.5 * focus})`;
     ctx.fillRect(WORLD.x0, WORLD.y0, WORLD.w, WORLD.h);
   }
   const px = 1 / s; // 画面の 1px
 
   // 2. 道（物流）
   ctx.lineCap = 'round';
-  ctx.strokeStyle = COLORS.road;
-  ctx.globalAlpha = 0.55 * aLog;
+  ctx.strokeStyle = '#d9b77a';
+  ctx.globalAlpha = 0.5 * aLog;
   ctx.lineWidth = Math.max(3, 3 * px);
   ctx.setLineDash([]);
   ctx.beginPath();
@@ -256,16 +267,29 @@ export function draw(f: Frame, v: View, st: ModelState) {
     }
   }
 
-  // 5. AIの村の光（AIの層）
+  // 5. 夜の灯り：人の村は暖かい灯、AIの村は紫の光（AIの層）
   if (f.rich) {
+    for (const v2 of SETTLEMENTS) {
+      if (v2.kind !== 'human') continue;
+      const [x, y] = top(...v2.hex);
+      const rad = v2.size === 'town' ? 58 : 44;
+      const g = ctx.createRadialGradient(x, y, 3, x, y, rad);
+      g.addColorStop(0, 'rgba(255,178,92,0.34)');
+      g.addColorStop(1, 'rgba(255,178,92,0)');
+      ctx.globalAlpha = Math.max(0.4, aDef, aLog);
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(x, y, rad, 0, Math.PI * 2);
+      ctx.fill();
+    }
     for (const v2 of SETTLEMENTS) {
       if (v2.kind !== 'ai') continue;
       const [x, y] = top(...v2.hex);
       const pulse = 0.82 + 0.18 * Math.sin(st.turn * 0.9 + x);
       const rad = (v2.size === 'city' ? 70 : 52) * (0.9 + 0.25 * L.ai);
       const g = ctx.createRadialGradient(x, y, 4, x, y, rad);
-      g.addColorStop(0, `rgba(123,92,255,${0.42 * pulse})`);
-      g.addColorStop(1, 'rgba(123,92,255,0)');
+      g.addColorStop(0, `rgba(155,123,255,${0.55 * pulse})`);
+      g.addColorStop(1, 'rgba(155,123,255,0)');
       ctx.globalAlpha = Math.max(0.35, aAi);
       ctx.fillStyle = g;
       ctx.beginPath();
@@ -305,17 +329,17 @@ export function draw(f: Frame, v: View, st: ModelState) {
     const w = 34;
     const gy = y - 44;
     ctx.globalAlpha = Math.max(0.3, aLog) * 0.95;
-    ctx.fillStyle = 'rgba(255,253,246,0.92)';
+    ctx.fillStyle = COLORS.chip;
     ctx.fillRect(x - w / 2 - 2, gy - 2, w + 4, 8);
     ctx.fillStyle = COLORS.rule;
     ctx.fillRect(x - w / 2, gy, w, 4);
-    ctx.fillStyle = 'depot' in p ? COLORS.road : p.kind === 'ai' ? COLORS.ai : COLORS.human;
+    ctx.fillStyle = 'depot' in p ? '#d9b77a' : p.kind === 'ai' ? COLORS.ai : COLORS.human;
     ctx.fillRect(x - w / 2, gy, w * Math.min(1, value / p.max), 4);
     if (L.logistics > 0.3) {
       ctx.globalAlpha = L.logistics;
       ctx.font = `500 9px ${f.font}`;
       ctx.textAlign = 'center';
-      ctx.fillStyle = COLORS.ink;
+      ctx.fillStyle = COLORS.bone;
       ctx.fillText(String(Math.round(value)), x, gy - 4);
     }
   }
@@ -335,12 +359,12 @@ export function draw(f: Frame, v: View, st: ModelState) {
     const lx = x - w / 2;
     const ly = y + 30;
     const hot = f.hover === p.id;
-    ctx.fillStyle = hot ? COLORS.ink : 'rgba(255,253,246,0.94)';
+    ctx.fillStyle = hot ? COLORS.bone : COLORS.chip;
     ctx.fillRect(lx, ly - 8, w, 16);
-    ctx.strokeStyle = p.kind === 'ai' ? COLORS.ai : 'rgba(22,32,28,0.35)';
+    ctx.strokeStyle = p.kind === 'ai' ? COLORS.ai : 'rgba(232,236,230,0.35)';
     ctx.lineWidth = 1;
     ctx.strokeRect(lx + 0.5, ly - 7.5, w - 1, 15);
-    ctx.fillStyle = hot ? COLORS.paper : COLORS.ink;
+    ctx.fillStyle = hot ? COLORS.void : COLORS.bone;
     ctx.fillText(label, lx + 6, ly + 0.5);
     if (tag) {
       ctx.fillStyle = COLORS.ai;
@@ -379,10 +403,10 @@ export function draw(f: Frame, v: View, st: ModelState) {
       ctx.moveTo(x + 8, y - 18);
       ctx.lineTo(tx, ty);
       ctx.stroke();
-      ctx.fillStyle = 'rgba(255,253,246,0.95)';
+      ctx.fillStyle = COLORS.chip;
       ctx.fillRect(tx, ty - 8, w, 16);
       ctx.strokeRect(tx + 0.5, ty - 7.5, w - 1, 15);
-      ctx.fillStyle = '#5a3ee0';
+      ctx.fillStyle = '#c3b2ff';
       ctx.fillText(tr.text, tx + 6, ty + 0.5);
     }
     ctx.textBaseline = 'alphabetic';
@@ -399,9 +423,12 @@ export function draw(f: Frame, v: View, st: ModelState) {
       ctx.globalAlpha = v.verify * Math.max(0, 1 - a.age / 4);
       const text = '✓ verified';
       const w = ctx.measureText(text).width + 12;
-      ctx.fillStyle = COLORS.ink;
+      ctx.fillStyle = COLORS.chip;
       ctx.fillRect(x - w / 2, y - 74, w, 16);
-      ctx.fillStyle = COLORS.paper;
+      ctx.strokeStyle = COLORS.signal;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x - w / 2 + 0.5, y - 73.5, w - 1, 15);
+      ctx.fillStyle = COLORS.signal;
       ctx.fillText(text, x, y - 62.5);
     }
   }
@@ -410,7 +437,7 @@ export function draw(f: Frame, v: View, st: ModelState) {
   ctx.globalAlpha = 1;
   if (v.dim > 0.01) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.fillStyle = `rgba(241,237,227,${Math.min(0.94, v.dim)})`;
+    ctx.fillStyle = `rgba(5,7,6,${Math.min(0.92, v.dim)})`;
     ctx.fillRect(0, 0, width, height);
   }
 }
