@@ -8,35 +8,37 @@
 - 模型は画面に固定した背景として全セクションに通り、スクロールで場面（ターン・層・カメラ・沈め具合）が移る。
 - セクション：ヒーロー／なぜゲームか（3場面）／Wylls／社名とワールド・ゲーム／開発ログ（GitHub から自動）／会社概要・連絡。日英同じ構成。
 
-## 模型の作り（teardown の作法）
+## 模型の作り（teardown の作法、three.js の 3D）
+
+2026-11-04 の指示（「three.js で 3D に作り直す」）で、Canvas 2D から 3D に作り直した。地形・村・荷車・箱・塔・国境はすべてコードで組み立てる（画像のタイルは使わない）。
 
 | ファイル | 役割 |
 |---|---|
-| `src/model/hex.ts` | ヘックスの寸法。Wylls クライアントの `map/table.mjs`・`sprites.mjs` と同じ数（半径 44、潰れ 0.76、上面の持ち上げ） |
+| `src/model/hex.ts` | ヘックスの寸法。Wylls クライアントの `map/table.mjs`・`sprites.mjs` と同じ数（半径 44、潰れ 0.76） |
 | `src/model/world.ts` | 見本の世界。seed 1117 で一度だけ作る。人の村 3・AIの村 2・倉庫 2・見張り塔 2・荷車の道 8 本 |
-| `src/model/state.ts` | `state(turn)`：荷車の位置、在庫、着いた荷、AIの判断の跡、読み値。純粋関数（乱数・時計なし） |
-| `src/model/render.ts` | Canvas 2D。地形と村は一枚に描き固め、毎フレームは道・境・荷車・ゲージ・光・文字だけ |
-| `src/model/timeline.ts` | ツアーの台本（46 秒）と各セクションの場面 |
-| `src/model/tiers.ts` | 段 2（全部）／1（30fps、光と判断の跡なし）／0（止めた絵、操作で描き直す） |
+| `src/model/state.ts` | `state(turn)`：荷車の位置と向き、在庫、着いた荷、AIの判断の跡、国境、読み値。純粋関数（乱数・時計なし） |
+| `src/model/timeline.ts` | ツアーの台本（32 秒、6 拍）と各セクションの場面。カーソルの動きも時間だけから決まる |
+| `src/model/tiers.ts` | 段 2（影あり）／1（30fps、影なし、計器は 1 フレームおき）／0（止めた絵、操作で描き直す）。最初の 60 フレームで下げる |
 | `src/model/store.ts` | 描画ループと操作部品が共有する状態 |
-| `src/components/WorldStage.tsx` | 固定の canvas、スクロール→場面、ツアーの時計、段の自動調整、`?capture` の書き出し口 |
-| `src/components/ModelControls.tsx` | スライダー・層のボタン・字幕・案内カーソル・読み値・地図を横に引く操作 |
+| `src/model3d/world3d.ts` | 3D の組み立て（InstancedMesh、平らな陰影）。`update(state)` で荷車・箱の数・国境・強調を合わせる。在庫は箱の数で見える |
+| `src/model3d/camera.ts` | 視点 5 つ（全景・交易路・AIの区画・国境＝真上・荷車に乗る）。重みで混ぜる。縦長の画面では引く |
+| `src/model3d/console.ts` | 計器（在庫と届いた荷のグラフ、AIの判断の帯、荷の配線図）と、模型の部品を指す札 |
+| `src/components/WorldStage.tsx` | 固定の WebGL、スクロール→場面、ツアーの時計、段の自動調整、`?capture` の書き出し口。three.js は後から読み込む |
+| `src/components/ModelControls.tsx` | 層と視点のボタン・スライダー・字幕・案内カーソル・計器・読み値・ドラッグで回す操作 |
+| `src/components/Rain.tsx` | 背景の文字の雨（ご指示で復活）。`?capture` では乱数を固定し、書き出す側が 1 コマずつ進める |
 
-- 入力は `turn` 一つ。画面の数字（在庫・荷車数・AIの判断数・AIの荷の割合・守られたマス）は、すべて同じ `state(turn)` から出るので、絵と数字が食い違わない。
-- 自動ツアー：触ると操作を渡し、25 秒触らなければ戻る。
+- 入力は `turn` 一つ。画面の数字・グラフ・箱の数・札の文字は、すべて同じ `state(turn)` から出るので、絵と数字が食い違わない。
+- 自動ツアー：カーソルがボタンを押して層と視点を切り替える。触ると操作を渡し、25 秒触らなければ戻る。
 - 模型の中の文字は英語（ご指示）。字幕はサイトの言語。
 - 注記「コンセプトを伝えるための模型で、実際のゲームデータではありません。」を常に表示。
+- 霧はカメラから注視点までの距離に合わせる（スマホで引いたとき模型が沈まないように）。
 
-## 素材
+## 映像（X 投稿用）
 
-| 素材 | 出所 | 扱い |
-|---|---|---|
-| `public/model/@1x`, `@2x` | Wylls の `permutation-server/web/frontier/art/terrain` と `holdings`（人＝ember、AI＝iron） | 持ち主の許可（2026-11-04 の回答）に基づき使用。リポジトリに出所の記録はない。指導者・兵の画像は使わない（生成元 Hunyuan3D-2 のライセンスが未確認のため） |
-| `src/assets/wylls-village.jpg` | `wylls/docs/design/uplift/shots/after/s02-village-desk.jpg` | 「見本の世界（固定の時計・同じ乱数）で撮影した開発中の画面」と明記 |
-| `public/media/cart.mp4` / `cart-poster.webp` | このサイトの模型から書き出し（`?capture` → Playwright で 240 コマ → ffmpeg H.264）。元の荷車動画は持ち主の Mac にあるかもしれないが、このセッションからは接続できなかった | 「サイトの模型から書き出したもので、ゲームの画面ではありません」と明記。画面に入ったときだけ再生、動きを減らす設定では自動再生しない |
-| `public/media/model-still.webp` | 模型の止めた絵 | JS が動かないときの代わり |
-| `public/og/{ja,en}.jpg` | 模型の絵＋サイトの書体 | 1200×630 |
-| フォント | Zen Old Mincho（見出し）、Geist Mono（ラベル・模型） | SIL OFL。本文は端末の日本語書体（初回の転送量を約 0.9MB 減らすため） |
+- `film/timeline.mts` が台本と、荷の到着・AIの判断の時刻を `film/timeline.json` に書き出す。
+- 映像は `?capture` のページで `__ykCapture.render(t)` を 1 コマずつ呼んで撮る（1600×900 を 1.2 倍＝1920×1080、60fps、32 秒）。
+- 音は `film/score.py`（teardown の sfx、Python 標準ライブラリだけで合成）。時刻はすべて台本から読む。−14 LUFS、ピーク −2 dBFS。
+- 書き出したものは `film/out/`（git に入れない）。
 
 ## 開発ログ
 

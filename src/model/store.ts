@@ -1,17 +1,20 @@
-// 模型の操作の状態。描画のループと、ヒーローの操作部品（スライダー・層のボタン・読み値）が共有する。
+// 模型の操作の状態。描画のループと、ヒーローの操作部品（スライダー・層と視点のボタン・読み値）が共有する。
 // 毎フレームの値は React の状態にせず、ここに置く。操作部品へは 1 秒に 8 回まで知らせる。
 
-import type { CaptionKey, Layer } from './timeline';
+import { TOUR_START_TURN, type CaptionKey, type Layer, type TourFrame, type ViewKey } from './timeline';
 import type { ModelState } from './state';
 
 export type Mode = 'tour' | 'user';
 
-type Snapshot = {
+export type Snapshot = {
   mode: Mode;
   turn: number;
   layer: Layer;
+  view: ViewKey;
   caption: CaptionKey;
-  cursorTo: Layer | null;
+  cursorTo: TourFrame['cursorTo'];
+  /** 書き出しのときだけ入る、時間で決まるカーソル */
+  cursorPath?: TourFrame['cursorPath'];
   readout: ModelState['readout'];
   stocks: ModelState['stocks'];
   /** 動きを止めているか（段 0） */
@@ -24,18 +27,22 @@ export const model = {
   mode: 'tour' as Mode,
   userTurn: 42,
   userLayer: 'none' as Layer,
+  userView: 'overview' as ViewKey,
+  /** 訪問者がドラッグで回した方位角（度） */
+  orbitAz: 0,
   /** ツアーを始めた（または再開した）時刻 ms と、そのときのターン */
   tourStart: 0,
-  tourTurn: 24,
+  tourTurn: TOUR_START_TURN,
   lastInput: 0,
   still: false,
   snapshot: {
     mode: 'tour',
     turn: 0,
     layer: 'none',
+    view: 'overview',
     caption: 'overview',
     cursorTo: null,
-    readout: { moving: 0, aiDecisions: 0, aiShare: 0, defended: 0 },
+    readout: { moving: 0, aiDecisions: 0, aiShare: 0, defended: 0, delivered: { human: 0, ai: 0 } },
     stocks: {},
     still: false,
   } as Snapshot,
@@ -57,17 +64,20 @@ export const subscribe = (l: () => void) => {
 export const getSnapshot = () => model.snapshot;
 
 /** 訪問者が触った：ツアーから操作を渡す */
-export function takeControl(patch: { turn?: number; layer?: Layer }) {
+export function takeControl(patch: { turn?: number; layer?: Layer; view?: ViewKey; orbitBy?: number }) {
   if (model.mode === 'tour') {
     model.userTurn = model.snapshot.turn;
     model.userLayer = model.snapshot.layer;
+    model.userView = model.snapshot.view;
   }
   model.mode = 'user';
   if (patch.turn !== undefined) model.userTurn = patch.turn;
   if (patch.layer !== undefined) model.userLayer = patch.layer;
+  if (patch.view !== undefined) model.userView = patch.view;
+  if (patch.orbitBy !== undefined) model.orbitAz += patch.orbitBy;
   model.lastInput = performance.now();
   // すぐに知らせる。遅れると、スライダーが古い値で描き直され、その値で change が届いてしまう
-  publish({ ...model.snapshot, mode: 'user', turn: model.userTurn, layer: model.userLayer }, true);
+  publish({ ...model.snapshot, mode: 'user', turn: model.userTurn, layer: model.userLayer, view: model.userView }, true);
   wake();
 }
 
@@ -85,4 +95,5 @@ export function resumeTour(now: number) {
   model.mode = 'tour';
   model.tourStart = now;
   model.tourTurn = model.userTurn;
+  model.orbitAz = 0;
 }

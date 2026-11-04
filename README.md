@@ -29,21 +29,33 @@ src/
 │   ├── fonts.ts           # Zen Old Mincho / Geist Mono（本文は端末の書体）
 │   └── globals.css        # 色・書体のトークン
 ├── model/                 # Wylls の世界の模型（描画以外は純粋な関数）
-│   ├── hex.ts  world.ts  state.ts  render.ts  timeline.ts  tiers.ts  store.ts
+│   ├── hex.ts  world.ts  state.ts  timeline.ts  tiers.ts  store.ts
+├── model3d/               # three.js の組み立て・視点・計器（後から読み込む）
+│   ├── world3d.ts  camera.ts  console.ts
 ├── components/
 │   ├── HomePage.tsx       # ページの構成（各セクションに data-scene）
 │   ├── WorldStage.tsx     # 画面に固定した模型。スクロールで場面が移る
 │   ├── ModelControls.tsx  # スライダー・層のボタン・読み値・自動ツアーのカーソル
+│   ├── Rain.tsx           # 背景の文字の雨
 │   ├── CartVideo.tsx, ExternalLink.tsx
 ├── lib/feed/              # 開発ログの取り込み（GitHub。X は後から足せる）
 ├── content/site.ts        # 掲載情報（ja / en）と模型の中の英語表示
+film/                      # X 投稿用の映像の台本と音（teardown の sfx）
 public/
-├── model/@1x, @2x         # Wylls の地形・村のタイル
-├── media/                 # 荷車の映像、模型の止めた絵
+├── media/                 # 模型から書き出した映像、模型の止めた絵
 └── og/                    # OG画像
 ```
 
 模型の考え方と計測は `docs/redesign-2026-11.md`。
+
+## 映像の書き出し（X 投稿用）
+
+`?capture` を付けて開くと、ページは自分では動かず、`window.__ykCapture.render(t)`（ツアーの t 秒の 1 コマ）と `window.__ykRain.step(dt)` を外から呼べるようになります。Playwright で 1 コマずつ撮って ffmpeg に渡します。
+
+```bash
+npx jiti film/timeline.mts > film/timeline.json         # 台本と、荷の到着・AIの判断の時刻
+python ~/.claude/skills/teardown/run_sfx.py film/score.py # 音 → film/out/score.wav（-14 LUFS）
+```
 
 ## スクリーンショット
 

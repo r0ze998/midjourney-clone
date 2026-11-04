@@ -2,7 +2,7 @@ import Image from 'next/image';
 import type { ReactNode } from 'react';
 import WorldStage from './WorldStage';
 import Rain from './Rain';
-import ModelControls, { ModelReadout, ScrubArea } from './ModelControls';
+import ModelControls, { ModelConsole, ModelReadout, ScrubArea } from './ModelControls';
 import ExternalLink from './ExternalLink';
 import CartVideo from './CartVideo';
 import wyllsShot from '../assets/wylls-village.jpg';
@@ -48,7 +48,7 @@ export default function HomePage({ lang, feed }: { lang: Lang; feed: FeedItem[] 
         aria-hidden="true"
         className="pointer-events-none fixed inset-0 -z-20 bg-[radial-gradient(ellipse_80%_85%_at_60%_45%,transparent_45%,rgba(5,7,6,0.55)_100%)]"
       />
-      <WorldStage />
+      <WorldStage stillSrc="/media/model-still.webp" stillAlt={c.model.description} />
 
       <header className="sticky top-0 z-30 border-b border-rule/70 bg-paper/85 backdrop-blur-sm">
         <div className="mx-auto flex h-14 max-w-[1440px] items-center justify-between px-5 sm:px-8 lg:h-16 lg:px-12">
@@ -77,7 +77,7 @@ export default function HomePage({ lang, feed }: { lang: Lang; feed: FeedItem[] 
       <main id="main" tabIndex={-1} className="outline-none">
         {/* 1. ヒーロー：模型を操作できる */}
         <section id="top" data-scene="hero" aria-labelledby="hero-title" className="relative lg:min-h-[calc(100svh-4rem)]">
-          <div aria-hidden="true" className="over-model pointer-events-none absolute inset-y-0 left-0 hidden w-[46%] lg:block" />
+          <div aria-hidden="true" className="over-model pointer-events-none absolute inset-y-0 left-0 hidden w-[40%] lg:block" />
           <ScrubArea className="absolute inset-x-0 top-0 h-[46svh] lg:left-[38%] lg:h-full" />
           {/* JS が動かないときは、模型の止まった絵を見せ、操作の部品は隠す */}
           <noscript>
@@ -89,7 +89,9 @@ export default function HomePage({ lang, feed }: { lang: Lang; feed: FeedItem[] 
               className="absolute inset-x-0 top-0 -z-10 h-[46svh] w-full object-cover lg:left-[30%] lg:h-full lg:w-[70%] lg:object-contain"
             />
           </noscript>
-          <div className="pointer-events-none absolute bottom-12 right-12 hidden xl:block">
+          {/* 計器（teardown の console）：グラフ・AIの判断の帯・配線図・読み値。すべて模型と同じ state から */}
+          <div className="pointer-events-none absolute bottom-10 right-12 top-8 hidden w-[17.5rem] flex-col justify-end gap-3 xl:flex">
+            <ModelConsole />
             <ModelReadout />
           </div>
           <div aria-hidden="true" className="h-[46svh] lg:hidden" />

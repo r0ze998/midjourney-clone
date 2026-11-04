@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef } from 'react';
 import { rainTexts } from '../content/site';
+import { rng } from '../model/hex';
 
 const GLYPHS = 'ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ0123456789';
 const FONT = 15;
@@ -20,18 +21,21 @@ export default function Rain({ className = '' }: { className?: string }) {
     const ctx: CanvasRenderingContext2D = context;
 
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // 映像の書き出し（?capture）では、乱数を固定し、書き出す側が 1 コマずつ進める
+    const capture = new URLSearchParams(window.location.search).has('capture');
+    const random = capture ? rng(2026) : Math.random;
     let cols: Column[] = [];
     let raf = 0;
     let last = 0;
 
-    const pick = () => rainTexts[Math.floor(Math.random() * rainTexts.length)];
+    const pick = () => rainTexts[Math.floor(random() * rainTexts.length)];
     const spawn = (x: number, h: number): Column => ({
       x,
-      y: -Math.random() * h,
-      speed: 28 + Math.random() * 46,
+      y: -random() * h,
+      speed: 28 + random() * 46,
       text: pick(),
       i: 0,
-      tone: 0.3 + Math.random() * 0.7,
+      tone: 0.3 + random() * 0.7,
     });
 
     // 残像の濃さ。60fps で 1 フレームあたり 0.024 暗くするのと同じ減衰を、任意の dt に換算する
@@ -71,13 +75,13 @@ export default function Rain({ className = '' }: { className?: string }) {
         // 進んだ分のマス目すべてに文字を打つ（dt が大きくても列が途切れない）
         for (let cell = from + 1; cell <= to; cell++) {
           if (cell < 0) continue;
-          const ch = Math.random() < 0.03 ? GLYPHS[Math.floor(Math.random() * GLYPHS.length)] : c.text[c.i % c.text.length];
+          const ch = random() < 0.03 ? GLYPHS[Math.floor(random() * GLYPHS.length)] : c.text[c.i % c.text.length];
           c.i++;
           ctx.fillStyle = `rgba(62, 240, 140, ${0.85 * c.tone})`;
           ctx.fillText(ch, c.x, cell * FONT);
         }
         if (c.y > h + FONT * c.text.length) {
-          Object.assign(c, spawn(c.x, h), { y: -Math.random() * h * 0.4 });
+          Object.assign(c, spawn(c.x, h), { y: -random() * h * 0.4 });
         }
       }
     }
@@ -109,6 +113,12 @@ export default function Rain({ className = '' }: { className?: string }) {
         window.clearTimeout(resizeTimer);
         window.removeEventListener('resize', onResize);
       };
+    }
+
+    if (capture) {
+      resize();
+      (window as unknown as { __ykRain: unknown }).__ykRain = { step: (dt: number) => step(dt) };
+      return;
     }
 
     resize();

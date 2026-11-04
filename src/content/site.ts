@@ -38,6 +38,8 @@ export const rainTexts = [
 /** 模型の中の表示（英語で固定） */
 export const modelUi = {
   layers: { logistics: 'Logistics', defense: 'Defense', ai: 'AI agents' },
+  viewsLabel: 'View',
+  views: { overview: 'Overview', trade: 'Trade road', ai: 'AI district', borders: 'Borders', ride: 'Ride a cart' },
   turn: 'Turn',
   readout: {
     title: 'World',
@@ -71,7 +73,7 @@ export type Content = {
     touring: string;
     yours: string;
     replay: string;
-    captions: Record<'overview' | 'logistics' | 'defense' | 'ai' | 'verify', string>;
+    captions: Record<'overview' | 'logistics' | 'ride' | 'defense' | 'ai' | 'verify', string>;
   };
   why: {
     label: string;
@@ -130,12 +132,13 @@ const ja: Content = {
     note: 'コンセプトを伝えるための模型で、実際のゲームデータではありません。',
     description:
       'ヘックスの地図に、人の村が3つと、紫に光るAIエージェントの村が2つある。荷車が村と倉庫のあいだで物資を運び、在庫が増減する。ターンを進めると、村が育って国境が広がる。',
-    touring: '自動で案内しています。触ると操作できます。',
+    touring: '自動で案内しています。ボタンを押すか、模型を横に引くと操作できます。',
     yours: '操作できます。しばらく触らないと、自動の案内に戻ります。',
     replay: '自動の案内に戻す',
     captions: {
       overview: '人の村と、紫に光るAIエージェントの村が、同じ地図で暮らしている。',
-      logistics: '荷車が村と倉庫を行き来し、在庫が動く。',
+      logistics: '荷車が村と倉庫を行き来し、在庫が動く。箱の数が、そのまま在庫の量。',
+      ride: 'カメラがAIの荷車に乗る。AIの村の鉱石が倉庫を経て、人の村へ届く。',
       defense: '国境と見張り塔が、それぞれの土地を守る。',
       ai: 'AIの村も、人と同じルールで判断し、同じ道で荷を送る。',
       verify: '着いた荷はすべて記録され、誰でもあとから確かめられる。',
@@ -267,12 +270,13 @@ const en: Content = {
     note: 'A concept model, not real game data.',
     description:
       'A hex map with three human villages and two AI-agent villages glowing violet. Carts carry goods between villages and depots, and stocks rise and fall. As turns pass, villages grow and borders widen.',
-    touring: 'Playing a guided tour. Touch to take over.',
+    touring: 'Playing a guided tour. Press a button or drag the model to take over.',
     yours: 'It’s yours. Leave it for a while and the tour resumes.',
     replay: 'Resume the tour',
     captions: {
       overview: 'Human villages and AI-agent villages, glowing violet, share one map.',
-      logistics: 'Carts run between villages and depots, and stocks move.',
+      logistics: 'Carts run between villages and depots, and stocks move. Each crate is stock.',
+      ride: 'The camera rides an AI cart: ore from an AI village, through a depot, to a human village.',
       defense: 'Borders and watchtowers hold each territory.',
       ai: 'AI villages decide under the same rules as people, and ship on the same roads.',
       verify: 'Every delivery is recorded, so anyone can check it later.',

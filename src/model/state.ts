@@ -29,6 +29,9 @@ export type Cart = {
   dir: 1 | -1;
   /** 道の上を動いているか（着いて荷下ろし中・出発待ちは false） */
   moving: boolean;
+  /** 進む向きの単位ベクトル（2D 座標） */
+  hx: number;
+  hy: number;
 };
 
 export type Arrival = { at: string; route: string; kind: Kind; age: number };
@@ -46,6 +49,8 @@ export type ModelState = {
     aiDecisions: number;
     aiShare: number;
     defended: number;
+    /** 届いた荷の累計（人の荷車・AIの荷車） */
+    delivered: { human: number; ai: number };
   };
 };
 
@@ -113,7 +118,17 @@ export function state(turn: number): ModelState {
       moving = true;
     }
     const [x, y, dir] = along(r, u);
-    carts.push({ route: r.id, kind: r.kind, cargo: r.cargo, x, y, loaded, moving, dir: loaded ? dir : (-dir as 1 | -1) });
+    // 向き：行き（と着いて荷を下ろすあいだ）は道の先へ、帰りは出発地へ
+    const outbound = phase < r.travel + dwell;
+    const du = 0.02;
+    const [x2, y2] = along(r, outbound ? Math.min(1, u + du) : Math.max(0, u - du));
+    const [x3, y3] = along(r, outbound ? Math.max(0, u - du) : Math.min(1, u + du));
+    let hx = x2 - x3;
+    let hy = y2 - y3;
+    const hl = Math.hypot(hx, hy) || 1;
+    hx /= hl;
+    hy /= hl;
+    carts.push({ route: r.id, kind: r.kind, cargo: r.cargo, x, y, loaded, moving, hx, hy, dir: loaded ? dir : (-dir as 1 | -1) });
 
     // 着いた直後（4 ターン以内）
     const sinceArrival = phase - r.travel;
@@ -146,6 +161,7 @@ export function state(turn: number): ModelState {
       aiDecisions,
       aiShare: allLoad ? aiLoad / allLoad : 0,
       defended,
+      delivered: { human: allLoad - aiLoad, ai: aiLoad },
     },
   };
 }
