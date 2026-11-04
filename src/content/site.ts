@@ -106,7 +106,7 @@ const ja: Content = {
     title: '株式会社雪風 | Yukikaze Inc.',
     description:
       '株式会社雪風は、人間とAIが同じルールで生きる世界を、ゲームで先に試す京都の会社です。現在は戦略ゲーム「Wylls」をSolanaで開発しています。',
-    ogAlt: '株式会社雪風 — ゲームで、新しいルールを試す。',
+    ogAlt: '株式会社雪風 — Make the world work.',
   },
   name: '株式会社雪風',
   nameLatin: 'YUKIKAZE INC.',
@@ -121,7 +121,9 @@ const ja: Content = {
   ],
   hero: {
     kicker: 'KYOTO — GAME STUDIO',
-    title: 'ゲームで、\n新しいルールを試す。',
+    // 見出しは R・バックミンスター・フラーの言葉（「ワールド・ゲーム」の目的の冒頭）。出典は社名の項の引用に。
+    // 見出しには出典を付けない（持ち主の指示、2026-11-04）
+    title: 'Make the world work.',
     lead: '人間とAIが同じルールで生きる世界を、ゲームで先に試す会社です。',
   },
   model: {
@@ -245,7 +247,7 @@ const en: Content = {
     title: 'Yukikaze Inc. | 株式会社雪風',
     description:
       'Yukikaze Inc. is a Kyoto studio that tries out, in games, a world where humans and AI live by the same rules. We are building Wylls, a strategy game on Solana.',
-    ogAlt: 'Yukikaze Inc. — Testing new rules through games.',
+    ogAlt: 'Yukikaze Inc. — Make the world work.',
   },
   name: 'Yukikaze Inc.',
   nameLatin: '株式会社雪風',
@@ -260,7 +262,7 @@ const en: Content = {
   ],
   hero: {
     kicker: 'KYOTO — GAME STUDIO',
-    title: 'Testing new rules\nthrough games.',
+    title: 'Make the world work.',
     lead: 'A studio that tries out, in games, a world where humans and AI live by the same rules.',
   },
   model: {

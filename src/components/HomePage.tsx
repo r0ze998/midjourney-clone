@@ -31,7 +31,6 @@ const fmtDate = (iso: string, lang: Lang) =>
 
 export default function HomePage({ lang, feed }: { lang: Lang; feed: FeedItem[] }) {
   const c = content[lang];
-  const [line1, line2] = c.hero.title.split('\n');
 
   return (
     <>
@@ -101,11 +100,10 @@ export default function HomePage({ lang, feed }: { lang: Lang; feed: FeedItem[] 
                 <span aria-hidden="true" className="inline-block h-px w-6 bg-signal" />
                 {c.hero.kicker}
               </p>
-              <h1 id="hero-title" className="serif text-[2rem] leading-[1.4] sm:text-[2.5rem] lg:text-[2.625rem]">
-                {line1}
-                <br />
-                {line2}
+              <h1 id="hero-title" className="serif text-[2.5rem] leading-[1.2] tracking-[0.005em] sm:text-[3rem] lg:text-[2.875rem]">
+                {c.hero.title}
               </h1>
+
               <p className="mt-4 max-w-[24em] text-[0.9375rem] leading-[1.9] text-ink-2 lg:text-base">{c.hero.lead}</p>
               <div className="js-only mt-8 border-t border-rule pt-5">
                 <ModelControls c={c.model} />
