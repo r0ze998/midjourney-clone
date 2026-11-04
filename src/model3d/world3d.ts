@@ -110,6 +110,112 @@ function radialTexture(inner: string, outer: string) {
   return t;
 }
 
+/** 点 (x, z) のあるマスの "q,r"（立方座標で丸める） */
+function hexKeyAt(x: number, z: number): string {
+  const r = z / 1.5;
+  const q = x / SQ3 - r / 2;
+  const s = -q - r;
+  let rq = Math.round(q);
+  let rr = Math.round(r);
+  const rs = Math.round(s);
+  const dq = Math.abs(rq - q);
+  const dr = Math.abs(rr - r);
+  const ds = Math.abs(rs - s);
+  if (dq > dr && dq > ds) rq = -rr - rs;
+  else if (dr > ds) rr = -rq - rs;
+  return `${rq},${rr}`;
+}
+
+/** 六角形の角 k（0..5）。CylinderGeometry と同じ向き（角が ±z） */
+const corner3 = (k: number, rad: number, y: number): [number, number, number] => [rad * Math.sin((k * Math.PI) / 3), y, rad * Math.cos((k * Math.PI) / 3)];
+
+/** 三角形の並びと色から、面ごとの法線を持つ形を作る */
+function facets(tris: [number, number, number][][], cols: number[]) {
+  const pos: number[] = [];
+  const col: number[] = [];
+  tris.forEach((tri, i) => {
+    // 外向き・上向きになるように並びを揃える
+    const [a, b, c] = tri;
+    const ux = b[0] - a[0], uy = b[1] - a[1], uz = b[2] - a[2];
+    const vx = c[0] - a[0], vy = c[1] - a[1], vz = c[2] - a[2];
+    const n = [uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx];
+    const m = [(a[0] + b[0] + c[0]) / 3, (a[1] + b[1] + c[1]) / 3 + 0.5, (a[2] + b[2] + c[2]) / 3];
+    const ok = n[0] * m[0] + n[1] * m[1] + n[2] * m[2] >= 0;
+    for (const p of ok ? [a, b, c] : [a, c, b]) {
+      pos.push(...p);
+      col.push(cols[i], cols[i], cols[i]);
+    }
+  });
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  g.computeVertexNormals();
+  return g;
+}
+
+/** 面取りしたマスの上面（上面の高さが y = 0） */
+function bevelCap(r: () => number) {
+  const tris: [number, number, number][][] = [];
+  const cols: number[] = [];
+  const center: [number, number, number] = [0, 0.018, 0];
+  const RI = 0.86, RO = 0.985, YB = -0.045, YL = -0.11;
+  for (let k = 0; k < 6; k++) {
+    const i0 = corner3(k, RI, 0), i1 = corner3(k + 1, RI, 0);
+    const o0 = corner3(k, RO, YB), o1 = corner3(k + 1, RO, YB);
+    const l0 = corner3(k, RO, YL), l1 = corner3(k + 1, RO, YL);
+    // 上面は 1 辺を 2 枚に分ける（中点を少し下げる）
+    const mid = corner3(k + 0.5, RI * 0.93, -0.004);
+    const m: [number, number, number] = [mid[0], mid[1], mid[2]];
+    tris.push([center, i0, m], [center, m, i1]);
+    cols.push(0.95 + r() * 0.09, 0.95 + r() * 0.09);
+    tris.push([i0, o0, i1], [i1, o0, o1]);
+    cols.push(0.82, 0.82);
+    tris.push([o0, l0, o1], [o1, l0, l1]);
+    cols.push(0.62, 0.62);
+  }
+  return facets(tris, cols);
+}
+
+/** 土の柱（高さ 1、上ほど明るい） */
+function soilPrism() {
+  const g = new THREE.CylinderGeometry(0.97, 0.94, 1, 6, 3);
+  g.translate(0, 0.5, 0);
+  const p = g.getAttribute('position');
+  const col: number[] = [];
+  for (let i = 0; i < p.count; i++) {
+    const y = p.getY(i);
+    // 地層の帯：上 1/3 は明るく、真ん中に一本暗い筋
+    const v = y > 0.67 ? 1.25 : y > 0.34 ? 0.85 : 0.6;
+    col.push(v, v, v);
+  }
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  return g.toNonIndexed();
+}
+
+/** 複数の形を一つにまとめ、部品ごとの明るさを頂点の色に入れる（幹は暗く、葉は明るく） */
+function mergeGeos(parts: THREE.BufferGeometry[], shade: number[]) {
+  const pos: number[] = [];
+  const nor: number[] = [];
+  const col: number[] = [];
+  parts.forEach((g0, i) => {
+    const g = g0.index ? g0.toNonIndexed() : g0;
+    const p = g.getAttribute('position');
+    const n = g.getAttribute('normal');
+    for (let j = 0; j < p.count; j++) {
+      pos.push(p.getX(j), p.getY(j), p.getZ(j));
+      nor.push(n.getX(j), n.getY(j), n.getZ(j));
+      // 幹は茶色に寄せる（インスタンスの緑と掛け合わせても茶に見えるよう、赤を強める）
+      if (i === 0) col.push(1.6 * shade[i], 0.75 * shade[i], 0.45 * shade[i]);
+      else col.push(shade[i], shade[i], shade[i]);
+    }
+  });
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  return g;
+}
+
 export type World3D = ReturnType<typeof buildWorld>;
 
 export function buildWorld(opts: { rich: boolean }) {
@@ -123,85 +229,207 @@ export function buildWorld(opts: { rich: boolean }) {
   const rand = rng(998);
 
   // ---- 地形：土の柱と、地形の色の上面 ----
-  const prism = new THREE.CylinderGeometry(0.985, 0.985, 1, 6, 1);
-  prism.translate(0, 0.5, 0);
-  const cap = new THREE.CylinderGeometry(0.985, 0.985, 0.06, 6, 1);
-  cap.translate(0, -0.03, 0);
-  const soilMat = track(new THREE.MeshStandardMaterial({ color: PALETTE.soil, roughness: 1, flatShading: true }), 'base');
-  const capMat = track(new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.92, flatShading: true }), 'base');
+  // 上面は「面取りした六角形」：中心を少し持ち上げた 6 枚の三角形＋斜めの縁＋縦の縁。
+  // 面ごとに色を少しゆらし、平らな塗りではなく、削り出した駒のように見せる。
+  const capGeo = bevelCap(rng(4242));
+  const prism = soilPrism();
+  const soilMat = track(new THREE.MeshStandardMaterial({ color: PALETTE.soil, roughness: 1, flatShading: true, vertexColors: true }), 'base');
+  const capMat = track(new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.9, flatShading: true, vertexColors: true }), 'base');
   const soil = new THREE.InstancedMesh(prism, soilMat, TILES.length);
-  const caps = new THREE.InstancedMesh(cap, capMat, TILES.length);
+  const caps = new THREE.InstancedMesh(capGeo, capMat, TILES.length);
   soil.receiveShadow = caps.receiveShadow = true;
   caps.castShadow = false;
   const m4 = new THREE.Matrix4();
+  const qt = new THREE.Quaternion();
+  const up = new THREE.Vector3(0, 1, 0);
+  const v3 = new THREE.Vector3();
+  const s3 = new THREE.Vector3();
   const capBase: THREE.Color[] = [];
+  const tint = rng(77);
   TILES.forEach((t, i) => {
     const [x, z] = centerXZ(t.q, t.r);
     const h = topY(t.q, t.r);
-    m4.makeScale(1, h - 0.06, 1).setPosition(x, 0, z);
+    m4.makeScale(1, h - 0.08, 1).setPosition(x, 0, z);
     soil.setMatrixAt(i, m4);
     m4.makeTranslation(x, h, z);
     caps.setMatrixAt(i, m4);
-    const [a, b] = TERRAIN_COLOR[t.terrain];
-    const col = new THREE.Color(t.variant === 2 ? b : a);
+    const [ca, cb] = TERRAIN_COLOR[t.terrain];
+    // マスごとに明るさと色味を少しずらす（同じ地形が並んでも単調にならない）
+    const col = new THREE.Color(t.variant === 2 ? cb : ca).offsetHSL((tint() - 0.5) * 0.018, (tint() - 0.5) * 0.06, (tint() - 0.5) * 0.045);
+    if (t.terrain === 'water') col.set('#2c5b66');
     capBase.push(col);
     caps.setColorAt(i, col);
   });
   root.add(soil, caps);
 
-  // 水面：少し低く、光を返す
+  // 道の通るマス（飾りを置かない）と、建物のあるマス
+  const busy = new Set([...SETTLEMENTS, ...DEPOTS, ...TOWERS].map((s) => `${s.hex[0]},${s.hex[1]}`));
+  const roadTiles = new Set<string>();
+  for (const r of ROUTES) for (const [px, py] of r.points) roadTiles.add(hexKeyAt(...from2D(px, py)));
+
+  // 水面：マスいっぱいに張り、隣の水のマスとつながって見えるように。
+  // 岸の砂と浅瀬は、陸に面した辺にだけ置く
   const waterTiles = TILES.filter((t) => t.terrain === 'water');
-  const waterMat = track(new THREE.MeshStandardMaterial({ color: '#3a7d8f', roughness: 0.18, metalness: 0.1, transparent: true, opacity: 0.9 }), 'base');
-  const water = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.93, 0.93, 0.02, 6, 1), waterMat, waterTiles.length);
+  const waterMat = track(new THREE.MeshStandardMaterial({ color: '#3f8ea0', roughness: 0.12, metalness: 0.15, transparent: true, opacity: 0.88, flatShading: true }), 'base');
+  const water = new THREE.InstancedMesh(new THREE.CylinderGeometry(1.0, 1.0, 0.02, 6, 1), waterMat, waterTiles.length);
+  const shoreTris: [number, number, number][][] = [];
+  const shallowTris: [number, number, number][][] = [];
   waterTiles.forEach((t, i) => {
     const [x, z] = centerXZ(t.q, t.r);
-    water.setMatrixAt(i, m4.makeTranslation(x, topY(t.q, t.r) + 0.012, z));
+    const y = topY(t.q, t.r);
+    water.setMatrixAt(i, m4.makeTranslation(x, y + 0.014, z));
+    for (const [dq, dr] of DIRS) {
+      const n = tileAt(t.q + dq, t.r + dr);
+      if (!n || n.terrain === 'water') continue;
+      // 隣のマスの方向にある辺（角 k と k+1 のあいだ）
+      const [nx, nz] = centerXZ(t.q + dq, t.r + dr);
+      const ang = Math.atan2(nx - x, nz - z);
+      const k = Math.round(ang / (Math.PI / 3) - 0.5);
+      const at = (kk: number, rad: number, h: number): [number, number, number] => {
+        const c = corner3(kk, rad, h);
+        return [c[0] + x, c[1] + y, c[2] + z];
+      };
+      shoreTris.push([at(k, 0.8, 0.03), at(k, 0.99, 0.03), at(k + 1, 0.8, 0.03)], [at(k + 1, 0.8, 0.03), at(k, 0.99, 0.03), at(k + 1, 0.99, 0.03)]);
+      shallowTris.push([at(k, 0.62, 0.027), at(k, 0.8, 0.027), at(k + 1, 0.62, 0.027)], [at(k + 1, 0.62, 0.027), at(k, 0.8, 0.027), at(k + 1, 0.8, 0.027)]);
+    }
   });
-  root.add(water);
+  const shoreGeo = facets(shoreTris.map((tr) => tr.map((p) => [p[0], p[1] + 10, p[2]] as [number, number, number])), shoreTris.map(() => 1));
+  shoreGeo.translate(0, -10, 0);
+  const shallowGeo = facets(shallowTris.map((tr) => tr.map((p) => [p[0], p[1] + 10, p[2]] as [number, number, number])), shallowTris.map(() => 1));
+  shallowGeo.translate(0, -10, 0);
+  const shore = new THREE.Mesh(shoreGeo, track(new THREE.MeshStandardMaterial({ color: '#b9a77a', roughness: 1, flatShading: true, vertexColors: true }), 'base'));
+  const shallow = new THREE.Mesh(shallowGeo, track(new THREE.MeshStandardMaterial({ color: '#6fb6bb', roughness: 0.3, transparent: true, opacity: 0.45, depthWrite: false }), 'base'));
+  shore.receiveShadow = true;
+  root.add(water, shore, shallow);
 
-  // 森の木・丘のこぶ・山
-  const treeSpots: [number, number, number, number][] = [];
-  const moundSpots: [number, number, number][] = [];
-  const peakSpots: [number, number, number, number][] = [];
-  const busy = new Set([...SETTLEMENTS, ...DEPOTS, ...TOWERS].map((s) => `${s.hex[0]},${s.hex[1]}`));
+  // ---- 地形の飾り：木（幹と二段の葉）、広葉樹、草、花、畑、岩、丘、山 ----
+  type Spot = { x: number; y: number; z: number; s: number; rot: number; c: THREE.Color };
+  const conifers: Spot[] = [];
+  const broadleaf: Spot[] = [];
+  const tufts: Spot[] = [];
+  const flowers: Spot[] = [];
+  const furrows: Spot[] = [];
+  const rocks: Spot[] = [];
+  const moundSpots: Spot[] = [];
+  const peakSpots: Spot[] = [];
+  const C = (hex: string, j = 0.05) => new THREE.Color(hex).offsetHSL((rand() - 0.5) * 0.03, 0, (rand() - 0.5) * j);
+  const inHex = (x: number, z: number, d: number) => {
+    const a = rand() * Math.PI * 2;
+    const rr = Math.sqrt(rand()) * d;
+    return [x + Math.cos(a) * rr, z + Math.sin(a) * rr] as const;
+  };
+  const rich = opts.rich;
   for (const t of TILES) {
     const [x, z] = centerXZ(t.q, t.r);
     const y = topY(t.q, t.r);
     const k = `${t.q},${t.r}`;
+    const free = !busy.has(k) && !roadTiles.has(k);
     if (t.terrain === 'forest') {
-      const n = opts.rich ? 7 : 4;
+      const n = rich ? 9 : 5;
       for (let i = 0; i < n; i++) {
-        const a = rand() * Math.PI * 2;
-        const d = 0.15 + rand() * 0.62;
-        treeSpots.push([x + Math.cos(a) * d, y, z + Math.sin(a) * d, 0.75 + rand() * 0.5]);
+        const [px, pz] = inHex(x, z, 0.72);
+        (rand() < 0.78 ? conifers : broadleaf).push({ x: px, y, z: pz, s: 0.7 + rand() * 0.55, rot: rand() * 6.28, c: C(rand() < 0.5 ? '#35522c' : '#2c4626', 0.08) });
       }
-    } else if (t.terrain === 'grassland' && !busy.has(k) && rand() < 0.45) {
-      treeSpots.push([x + (rand() - 0.5) * 1.1, y, z + (rand() - 0.5) * 1.1, 0.7 + rand() * 0.3]);
+      if (rich) for (let i = 0; i < 4; i++) {
+        const [px, pz] = inHex(x, z, 0.8);
+        tufts.push({ x: px, y, z: pz, s: 0.8 + rand() * 0.5, rot: rand() * 6.28, c: C('#4f6e3a') });
+      }
+    } else if (t.terrain === 'grassland') {
+      if (free && rand() < 0.5) {
+        const [px, pz] = inHex(x, z, 0.55);
+        broadleaf.push({ x: px, y, z: pz, s: 0.75 + rand() * 0.35, rot: rand() * 6.28, c: C('#4c7034', 0.08) });
+      }
+      if (free || !busy.has(k)) {
+        const n = rich ? 9 : 4;
+        for (let i = 0; i < n; i++) {
+          const [px, pz] = inHex(x, z, 0.8);
+          if (!free && Math.hypot(px - x, pz - z) < 0.5) continue;
+          tufts.push({ x: px, y, z: pz, s: 0.7 + rand() * 0.6, rot: rand() * 6.28, c: C('#93ad5b', 0.08) });
+        }
+      }
+      if (free && rich) for (let i = 0; i < 3; i++) {
+        const [px, pz] = inHex(x, z, 0.75);
+        flowers.push({ x: px, y, z: pz, s: 0.8 + rand() * 0.5, rot: 0, c: new THREE.Color(['#efe2a0', '#e8edf2', '#d88f73'][Math.floor(rand() * 3)]) });
+      }
+    } else if (t.terrain === 'plains') {
+      if (free && rand() < 0.6) {
+        // 畑：同じ向きの畝を 5 本。向きはヘックスの辺に合わせる
+        const rot = (Math.floor(rand() * 3) * Math.PI) / 3;
+        const gold = rand() < 0.5 ? '#d2b866' : '#b9a25a';
+        for (let i = 0; i < 5; i++) {
+          const off = (i - 2) * 0.2;
+          furrows.push({ x: x + Math.cos(rot + Math.PI / 2) * off, y, z: z - Math.sin(rot + Math.PI / 2) * off, s: 1 - Math.abs(i - 2) * 0.18, rot, c: C(gold, 0.06) });
+        }
+      } else if (!busy.has(k)) {
+        const n = rich ? 5 : 2;
+        for (let i = 0; i < n; i++) {
+          const [px, pz] = inHex(x, z, 0.8);
+          if (roadTiles.has(k) && Math.hypot(px - x, pz - z) < 0.5) continue;
+          tufts.push({ x: px, y, z: pz, s: 0.6 + rand() * 0.4, rot: rand() * 6.28, c: C('#c9b56d', 0.06) });
+        }
+      }
+      if (free && rand() < 0.4) {
+        const [px, pz] = inHex(x, z, 0.7);
+        rocks.push({ x: px, y, z: pz, s: 0.6 + rand() * 0.5, rot: rand() * 6.28, c: C('#8c8678', 0.08) });
+      }
     } else if (t.terrain === 'hills') {
-      moundSpots.push([x + (rand() - 0.5) * 0.3, y, z + (rand() - 0.5) * 0.3]);
+      const n = rich ? 3 : 2;
+      for (let i = 0; i < n; i++) {
+        const [px, pz] = inHex(x, z, i === 0 ? 0.15 : 0.5);
+        moundSpots.push({ x: px, y, z: pz, s: i === 0 ? 1 : 0.45 + rand() * 0.25, rot: rand() * 6.28, c: C('#7f8c53', 0.06) });
+      }
+      for (let i = 0; i < (rich ? 4 : 2); i++) {
+        const [px, pz] = inHex(x, z, 0.8);
+        rocks.push({ x: px, y, z: pz, s: 0.5 + rand() * 0.6, rot: rand() * 6.28, c: C('#8a8577', 0.08) });
+      }
     } else if (t.terrain === 'mountain') {
-      peakSpots.push([x, y, z, 1]);
-      peakSpots.push([x + 0.42, y, z + 0.25, 0.62]);
+      peakSpots.push({ x, y, z, s: 1, rot: rand() * 6.28, c: C('#77716a', 0.05) });
+      peakSpots.push({ x: x + 0.42, y, z: z + 0.25, s: 0.62, rot: rand() * 6.28, c: C('#6f6a63', 0.05) });
+      peakSpots.push({ x: x - 0.38, y, z: z + 0.3, s: 0.48, rot: rand() * 6.28, c: C('#7c766e', 0.05) });
+      for (let i = 0; i < (rich ? 5 : 2); i++) {
+        const [px, pz] = inHex(x, z, 0.85);
+        rocks.push({ x: px, y, z: pz, s: 0.6 + rand() * 0.7, rot: rand() * 6.28, c: C('#6e6962', 0.08) });
+      }
     }
   }
-  const treeMat = track(new THREE.MeshStandardMaterial({ color: '#36532e', roughness: 0.9, flatShading: true }), 'base');
-  const trees = new THREE.InstancedMesh(new THREE.ConeGeometry(0.13, 0.38, 6, 1).translate(0, 0.19, 0), treeMat, treeSpots.length);
-  treeSpots.forEach(([x, y, z, s], i) => trees.setMatrixAt(i, m4.makeScale(s, s, s).setPosition(x, y, z)));
-  trees.castShadow = true;
-  const moundMat = track(new THREE.MeshStandardMaterial({ color: '#7d8a52', roughness: 1, flatShading: true }), 'base');
-  const mounds = new THREE.InstancedMesh(new THREE.SphereGeometry(0.5, 7, 4, 0, Math.PI * 2, 0, Math.PI / 2).scale(1, 0.42, 1), moundMat, moundSpots.length);
-  moundSpots.forEach(([x, y, z], i) => mounds.setMatrixAt(i, m4.makeTranslation(x, y, z)));
-  const peakMat = track(new THREE.MeshStandardMaterial({ color: '#77716a', roughness: 0.95, flatShading: true }), 'base');
-  const snowMat = track(new THREE.MeshStandardMaterial({ color: '#e7e9ee', roughness: 0.8, flatShading: true }), 'base');
-  const peaks = new THREE.InstancedMesh(new THREE.ConeGeometry(0.62, 1.05, 5, 1).translate(0, 0.52, 0), peakMat, peakSpots.length);
-  const snows = new THREE.InstancedMesh(new THREE.ConeGeometry(0.22, 0.36, 5, 1).translate(0, 0.87, 0), snowMat, peakSpots.length);
-  peakSpots.forEach(([x, y, z, s], i) => {
-    m4.makeScale(s, s, s).setPosition(x, y, z);
-    peaks.setMatrixAt(i, m4);
-    snows.setMatrixAt(i, m4);
-  });
-  peaks.castShadow = mounds.castShadow = true;
-  root.add(trees, mounds, peaks, snows);
+
+  const place = (geo: THREE.BufferGeometry, mat: THREE.Material, spots: Spot[], opts2: { shadow?: boolean; sy?: number } = {}) => {
+    const mesh = new THREE.InstancedMesh(geo, mat, Math.max(1, spots.length));
+    mesh.count = spots.length;
+    spots.forEach((p, i) => {
+      qt.setFromAxisAngle(up, p.rot);
+      m4.compose(v3.set(p.x, p.y, p.z), qt, s3.set(p.s, p.s * (opts2.sy ?? 1), p.s));
+      mesh.setMatrixAt(i, m4);
+      mesh.setColorAt(i, p.c);
+    });
+    mesh.castShadow = !!opts2.shadow;
+    mesh.receiveShadow = true;
+    root.add(mesh);
+    return mesh;
+  };
+  const leaf = () => track(new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.9, flatShading: true }), 'base');
+  // 針葉樹：幹＋二段の葉
+  const conGeo = mergeGeos([
+    new THREE.CylinderGeometry(0.025, 0.035, 0.12, 5, 1).translate(0, 0.06, 0),
+    new THREE.ConeGeometry(0.15, 0.26, 6, 1).translate(0, 0.21, 0),
+    new THREE.ConeGeometry(0.11, 0.22, 6, 1).translate(0, 0.36, 0),
+  ], [0.55, 1, 1.12]);
+  // 広葉樹：幹＋丸い葉
+  const broadGeo = mergeGeos([
+    new THREE.CylinderGeometry(0.025, 0.035, 0.16, 5, 1).translate(0, 0.08, 0),
+    new THREE.IcosahedronGeometry(0.15, 0).scale(1, 0.9, 1).translate(0, 0.26, 0),
+    new THREE.IcosahedronGeometry(0.1, 0).translate(0.07, 0.33, 0.03),
+  ], [0.55, 1, 1.12]);
+  const vc = () => track(new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.9, flatShading: true, vertexColors: true }), 'base');
+  place(conGeo, vc(), conifers, { shadow: true });
+  place(broadGeo, vc(), broadleaf, { shadow: true });
+  place(new THREE.ConeGeometry(0.03, 0.1, 4, 1).translate(0, 0.05, 0), leaf(), tufts);
+  place(new THREE.IcosahedronGeometry(0.022, 0).translate(0, 0.03, 0), track(new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.7, flatShading: true, emissive: '#ffffff', emissiveIntensity: 0.05 }), 'base'), flowers);
+  place(new THREE.BoxGeometry(0.95, 0.035, 0.09).translate(0, 0.017, 0), leaf(), furrows);
+  place(new THREE.DodecahedronGeometry(0.06, 0).scale(1, 0.7, 1).translate(0, 0.025, 0), leaf(), rocks, { shadow: rich });
+  place(new THREE.SphereGeometry(0.5, 7, 4, 0, Math.PI * 2, 0, Math.PI / 2).scale(1, 0.42, 1), leaf(), moundSpots, { shadow: true });
+  place(new THREE.ConeGeometry(0.62, 1.05, 5, 1).translate(0, 0.52, 0), leaf(), peakSpots, { shadow: true });
+  place(new THREE.ConeGeometry(0.22, 0.36, 5, 1).translate(0, 0.87, 0), track(new THREE.MeshStandardMaterial({ color: '#e7e9ee', roughness: 0.8, flatShading: true }), 'base'), peakSpots.map((p) => ({ ...p, c: new THREE.Color('#ffffff') })));
 
   // ---- 村：家並み（屋根の色で人とAI）と柵の輪 ----
   const houses: { x: number; y: number; z: number; s: number; rot: number; kind: Kind }[] = [];
