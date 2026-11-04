@@ -11,7 +11,7 @@ await p.addStyleTag({ content: 'body *{visibility:hidden!important} canvas.point
 const ff = spawn('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'png', '-i', '-', '-c:v', 'libx264', '-preset', 'slow', '-crf', '17', '-pix_fmt', 'yuv420p', out + '-master.mp4'], { stdio: ['pipe', 'inherit', 'inherit'] });
 const n = Math.round((t1 - t0) * FPS);
 for (let f = 0; f < n; f++) {
-  await p.evaluate(([t, ax, ay]) => window.__ykCapture.render(t, { ax, ay }), [+t0 + f / FPS, +AX, +AY]);
+  await p.evaluate(([t, ax, ay]) => window.__ykCapture.render(t, { ax, ay, layers: { logistics: 0.8, defense: 0, ai: 0.4 } }), [+t0 + f / FPS, +AX, +AY]);
   await p.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   const buf = await p.screenshot({ type: 'png' });
   if (!ff.stdin.write(buf)) await new Promise((r) => ff.stdin.once('drain', r));

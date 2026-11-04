@@ -233,9 +233,13 @@ export default function WorldStage({ stillSrc, stillAlt }: { stillSrc: string; s
             p.box.style.borderColor = color;
             // 札は画面の内側に収める（端から 16px）。付け根が右寄りなら左へ出す
             const bw = p.box.offsetWidth;
-            const left = sx + 56 + bw > size.w - 16 && sx - 56 - bw >= 16;
+            // 右に計器があるときは、その手前までに収める
+            const panel = document.querySelector<HTMLElement>('[data-console]');
+            const pr = panel && panel.offsetParent ? panel.getBoundingClientRect() : null;
+            const right = pr && pr.top < size.h && pr.bottom > 0 ? pr.left - 16 : size.w - 16;
+            const left = sx + 56 + bw > right && sx - 56 - bw >= 16;
             let bx = sx + (left ? -56 - bw : 56);
-            bx = Math.max(16, Math.min(size.w - 16 - bw, bx));
+            bx = Math.max(16, Math.min(right - bw, bx));
             const by = Math.max(72, sy - 54 - i * 38);
             p.box.style.left = `${bx}px`;
             p.box.style.top = `${by}px`;
@@ -301,11 +305,15 @@ export default function WorldStage({ stillSrc, stillAlt }: { stillSrc: string; s
           const t0 = performance.now();
           const st = paint(f, live, heroVisible, tier === 2 && size.w >= 1024 && model.mode !== 'tour');
           const cost = performance.now() - t0;
-          if (frames < 60) {
+          // 最初の 4 フレーム（シェーダーの準備）は数えない。10 フレームで重すぎると分かれば、60 を待たずに下げる。
+          // 段 1 は 30fps で回すので、その分を引いて比べる
+          if (frameNo > 4 && frames < 60) {
             frames++;
-            frameCost += cost;
-            if (frames === 60) {
-              const next = downgrade(tier, frameCost / 60);
+            frameCost += Math.max(cost, dt * 1000 - (tier === 1 ? 16 : 0));
+            const avg = frameCost / frames;
+            if (frames === 60 || (frames === 10 && avg > 40)) {
+              frames = 60;
+              const next = downgrade(tier, avg);
               if (next !== tier) {
                 tier = next;
                 renderer.shadowMap.enabled = tier === 2;
@@ -334,10 +342,10 @@ export default function WorldStage({ stillSrc, stillAlt }: { stillSrc: string; s
         if (capture) {
           (window as unknown as { __ykCapture: unknown }).__ykCapture = {
             ready: () => canvas.dataset.ready === '1',
-            render: (t: number, at?: { ax: number; ay: number }) => {
-              const anchor = at ?? anchorFor(size.w, 'hero');
+            render: (t: number, at?: { ax: number; ay: number; layers?: Live['layers'] }) => {
+              const anchor = at ? { ax: at.ax, ay: at.ay } : anchorFor(size.w, 'hero');
               const tf = tourAt(t);
-              const live: Live = { ...tf, dim: 0, spin: 0, ...anchor };
+              const live: Live = { ...tf, dim: 0, spin: 0, ...anchor, ...(at?.layers ? { layers: at.layers } : {}) };
               paint(live, live, true, false);
               const ls = state(live.turn);
               publish({ mode: 'tour', turn: live.turn, layer: live.layer, view: live.view, caption: live.caption, cursorTo: live.cursorTo, cursorPath: tf.cursorPath, readout: ls.readout, stocks: ls.stocks, still: false }, true);
@@ -351,8 +359,12 @@ export default function WorldStage({ stillSrc, stillAlt }: { stillSrc: string; s
           pointer = { x: e.clientX / window.innerWidth, y: e.clientY / window.innerHeight };
           if (model.still) kick();
         };
+        // 止めた絵の段では、スクロールが落ち着いてから一度だけ描き直す（重い端末でスクロールを詰まらせない）
+        let scrollTimer = 0;
         const onScroll = () => {
-          if (model.still) kick();
+          if (!model.still) return;
+          window.clearTimeout(scrollTimer);
+          scrollTimer = window.setTimeout(kick, 160);
         };
         const onVisibility = () => {
           lastNow = performance.now();
@@ -392,6 +404,7 @@ export default function WorldStage({ stillSrc, stillAlt }: { stillSrc: string; s
           offWake();
           window.removeEventListener('pointermove', onPointer);
           window.removeEventListener('scroll', onScroll);
+          window.clearTimeout(scrollTimer);
           window.removeEventListener('resize', onResize);
           document.removeEventListener('visibilitychange', onVisibility);
           scene.traverse((o) => {

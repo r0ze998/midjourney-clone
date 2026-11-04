@@ -18,10 +18,14 @@ export function initialTier(): Tier {
   return 2;
 }
 
-/** 最初の 60 フレームの平均描画時間（ms）から段を下げる */
-export function downgrade(tier: Tier, avgFrameMs: number): Tier {
-  if (tier === 2 && avgFrameMs > 9) return 1;
-  if (tier === 1 && avgFrameMs > 18) return 0;
+/**
+ * 最初のフレームの平均間隔（ms、requestAnimationFrame の実際の間隔）から段を下げる。
+ * 描画の呼び出しだけを測ると GPU の仕事が入らないので、フレームの間隔で測る。
+ * 重すぎる端末は一度に止めた絵まで下げる。
+ */
+export function downgrade(tier: Tier, avgIntervalMs: number): Tier {
+  if (avgIntervalMs > 50) return 0;
+  if (tier === 2 && avgIntervalMs > 24) return 1;
   return tier;
 }
 

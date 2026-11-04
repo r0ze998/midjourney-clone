@@ -90,7 +90,7 @@ export default function HomePage({ lang, feed }: { lang: Lang; feed: FeedItem[] 
             />
           </noscript>
           {/* 計器（teardown の console）：グラフ・AIの判断の帯・配線図・読み値。すべて模型と同じ state から */}
-          <div className="pointer-events-none absolute bottom-10 right-12 top-8 hidden w-[17.5rem] flex-col justify-end gap-3 xl:flex">
+          <div data-console className="pointer-events-none absolute bottom-10 right-12 top-8 hidden w-[17.5rem] flex-col justify-end gap-3 xl:flex">
             <ModelConsole />
             <ModelReadout />
           </div>
