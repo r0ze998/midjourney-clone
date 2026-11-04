@@ -110,9 +110,6 @@ export default function HomePage({ lang, feed }: { lang: Lang; feed: FeedItem[] 
               <div className="js-only mt-8 border-t border-rule pt-5">
                 <ModelControls c={c.model} />
               </div>
-              <noscript>
-                <p className="mt-8 border-t border-rule pt-5 text-[0.75rem] text-ink-3">{c.model.note}</p>
-              </noscript>
             </div>
           </div>
         </section>

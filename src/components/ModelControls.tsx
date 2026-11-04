@@ -138,7 +138,6 @@ export default function ModelControls({ c }: { c: Content['model'] }) {
       </label>
 
       <div className="mt-1 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-[0.75rem] text-ink-3">
-        <p>{snap.still ? '' : snap.mode === 'tour' ? c.touring : c.yours}</p>
         {!snap.still && snap.mode === 'user' && (
           <button
             type="button"
@@ -153,7 +152,6 @@ export default function ModelControls({ c }: { c: Content['model'] }) {
           </button>
         )}
       </div>
-      <p className="mt-2 text-[0.75rem] text-ink-3">{c.note}</p>
 
       {/* 案内のカーソル */}
       <div

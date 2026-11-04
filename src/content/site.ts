@@ -68,10 +68,7 @@ export type Content = {
   };
   model: {
     label: string;
-    note: string;
     description: string;
-    touring: string;
-    yours: string;
     replay: string;
     captions: Record<'overview' | 'logistics' | 'ride' | 'defense' | 'ai' | 'verify', string>;
   };
@@ -129,11 +126,8 @@ const ja: Content = {
   },
   model: {
     label: 'Wylls の世界の模型',
-    note: 'コンセプトを伝えるための模型で、実際のゲームデータではありません。',
     description:
       'ヘックスの地図に、人の村が3つと、紫に光るAIエージェントの村が2つある。荷車が村と倉庫のあいだで物資を運び、在庫が増減する。ターンを進めると、村が育って国境が広がる。',
-    touring: '自動で案内しています。ボタンを押すか、模型を横に引くと操作できます。',
-    yours: '操作できます。しばらく触らないと、自動の案内に戻ります。',
     replay: '自動の案内に戻す',
     captions: {
       overview: '人の村と、紫に光るAIエージェントの村が、同じ地図で暮らしている。',
@@ -271,11 +265,8 @@ const en: Content = {
   },
   model: {
     label: 'A model of the Wylls world',
-    note: 'A concept model, not real game data.',
     description:
       'A hex map with three human villages and two AI-agent villages glowing violet. Carts carry goods between villages and depots, and stocks rise and fall. As turns pass, villages grow and borders widen.',
-    touring: 'Playing a guided tour. Press a button or drag the model to take over.',
-    yours: 'It’s yours. Leave it for a while and the tour resumes.',
     replay: 'Resume the tour',
     captions: {
       overview: 'Human villages and AI-agent villages, glowing violet, share one map.',
