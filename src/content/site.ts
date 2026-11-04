@@ -153,7 +153,7 @@ const ja: Content = {
         body: 'AIは、人に代わって取引し、交渉し、物を動かす主体になりつつあります。人とAIが同じ市場に立つとき、ルールがどう働くか。社会で試す前に確かめておきたい問いです。',
       },
       {
-        title: 'ゲームは、社会の先行指標になる。',
+        title: 'ゲームは、社会の先行指標になりうる。',
         body: 'ゲームなら、人とAIを同じルールの中に置き、何が起きるかを小さく、速く、何度でも観察できます。ゲームの中で起きることは、これからの社会で起きることを先に映す。私たちはそう考えています。',
       },
       {
@@ -199,7 +199,8 @@ const ja: Content = {
       {
         name: '0xCIV',
         meta: '2026 · Starknet / Dojo · ゲームジャム作品',
-        desc: 'AIエージェントが文明を率いる小さな戦略ゲーム。Wyllsにつながる最初の試作。',
+        // 出典: 0xciv/README.md、dojoengine/game-jams PR #270（受賞なし）
+        desc: 'AIエージェントが文明を率いる小さな戦略ゲーム。Dojo Game Jam VIII の参加作。',
         href: site.oxciv,
       },
     ],
@@ -209,7 +210,9 @@ const ja: Content = {
     heading: '社名と、ワールド・ゲーム。',
     body: '陽炎型駆逐艦のなかで唯一、終戦まで残った「雪風」から名づけました。戦争を模したゲームではなく、全員が参加し、誰も損をしない道を探るゲームを。フラーが「ワールド・ゲーム」と呼んだこの考え方を、今の技術で試すことが雪風の出発点です。',
     quote: {
-      text: '生態系を破壊することなく、また誰の不利益も被ることなく、自発的な協力によって、可能な限り最短の時間で、100%世界をうまく利用できるようにする。',
+      // 原文: "Make the world work, for 100% of humanity, in the shortest possible time, through spontaneous cooperation, without ecological offense or the disadvantage of anyone."
+      // 旧訳の「100%世界をうまく利用できる」は原文の「人類の 100% のために世界が機能する」とずれていたので訳し直した
+      text: '生態系を損なうことなく、誰の不利益にもならず、自発的な協力によって、できるかぎり短い時間で、世界を人類の100%のために機能させる。',
       source: 'R・バックミンスター・フラー「ワールド・ゲーム」の目的（雪風訳）',
     },
   },
@@ -226,6 +229,7 @@ const ja: Content = {
       { label: '社名', value: '株式会社雪風（Yukikaze Inc.）' },
       { label: '所在地', value: '京都府京都市' },
       { label: '代表', value: '竹原 大智' },
+      // 事業・肩書きは持ち主の回答（2026-11-04）：事業はゲーム開発だけ、肩書きは「代表」
       { label: '事業', value: 'AIとブロックチェーンを活用したゲームの開発' },
     ],
   },
@@ -291,7 +295,7 @@ const en: Content = {
         body: 'AI is becoming something that trades, negotiates and moves goods on people’s behalf. When humans and AI meet in the same market, how do the rules hold up? It is a question worth answering before society has to.',
       },
       {
-        title: 'Games are a leading indicator.',
+        title: 'Games can be a leading indicator.',
         body: 'In a game, people and AI can live under one set of rules, and we can watch what happens: small, fast and as often as we like. We believe what happens in games shows, early, what will happen in society.',
       },
       {
@@ -335,7 +339,7 @@ const en: Content = {
       {
         name: '0xCIV',
         meta: '2026 · Starknet / Dojo · game jam entry',
-        desc: 'A small strategy game where AI agents lead civilizations; the first prototype on the road to Wylls.',
+        desc: 'A small strategy game where AI agents lead civilizations. An entry to Dojo Game Jam VIII.',
         href: site.oxciv,
       },
     ],
@@ -360,8 +364,8 @@ const en: Content = {
     heading: 'Company',
     rows: [
       { label: 'Company', value: 'Yukikaze Inc. (株式会社雪風)' },
-      { label: 'Location', value: 'Kyoto, Japan' },
-      { label: 'Founder', value: 'Daichi Takehara' },
+      { label: 'Location', value: 'Kyoto City, Kyoto, Japan' },
+      { label: 'Representative', value: 'Daichi Takehara' },
       { label: 'Business', value: 'Games built with AI and blockchain' },
     ],
   },
