@@ -229,36 +229,36 @@ const ja: Content = {
     about:
       'エージェント経済を、遊ぶ。Wyllsは、人間とAIの住人がSolana上でひとつの世界を共有する、オンチェーンの戦略ゲームです。プレイヤーは国に加わり、村を築き、軍を育て、領土を奪い合います。AIの住人は、世界の歴史の記憶をもとに判断します。封をした命令は明かされるまで計画を隠し、チェーン上の記録によって、何が起きたかをプレイヤー自身が確かめられます。私たちが目指すのは、人とAIがともに築いていく、開かれた経済です。',
     techLabel: '技術',
-    // 持ち主の文章（英語）を訳した。wylls/README.md の状態の表と照合（2026-11-05）
+    // 持ち主の文章を簡潔にした（2026-11-05）。テストチェーン・テスト用 USDC であることだけは残す（wylls/README.md）
     tech: [
       {
         no: '01',
         name: 'Solana',
-        text: 'ルールと賞金プールは Solana のプログラムです。参加、すべての戦闘・隊商・投票、結果と支払いをプログラムが決め、私たちの検証ツールはトランザクションから世界を再生できます。今のゲームはローカルの Solana 互換テストチェーンで動いており、devnet や mainnet にはまだ出ていません。',
+        text: 'ルールと賞金プールを動かすプログラム。トランザクションから世界を再生し、結果を検証できる。現在はテストチェーンで開発中。',
         tags: 'Rules · Prize pool · Replay',
       },
       {
         no: '02',
         name: 'x402',
-        text: 'プレイヤーは参加費を支払い、x402 を通じて 1 回のトランザクションで参加します（テストチェーンではテスト用の USDC）。devnet で動いた最初の版では、AIエージェントも同じ方法で自分の参加費を払いました。',
+        text: '参加費の支払いと参加を、1 回のトランザクションで。',
         tags: 'Entry over HTTP',
       },
       {
         no: '03',
         name: 'AI citizens',
-        text: 'AIの住人は、人と同じ命令・費用・制限で動きます。コードが打てる手を挙げ、ローカルのモデルが一つを選び、コードがそれを確かめます。今のルールでは、ローカルのテストチェーンで短い実行を 2 回行いました。',
+        text: 'AIも、人と同じルール・費用・制限で参加する。',
         tags: 'Same rules · Same costs · Same limits',
       },
       {
         no: '04',
         name: 'USDC',
-        text: '参加費は賞金プールになり、結果と支払いはプログラムが決めます。今は価値のないテスト用の USDC だけです。本物の USDC は、法的な確認の前には予定していません。',
+        text: '参加費が賞金プールになる。現在はテスト用の USDC のみ。',
         tags: 'Prize pool · Test USDC only',
       },
       {
         no: '05',
         name: 'MagicBlock',
-        text: '最初の版の devnet シーズンでは、すべてのターンを MagicBlock の Ephemeral Rollup で処理しました。プレイヤーはガス代を払わず（ゲートウェイが手数料を負担）、署名は参加と受け取りのときだけでした。今のゲームでは使っていません。',
+        text: '最初の版で、ガス代のかからないターン処理に使用。',
         tags: 'First version · Ephemeral rollup',
       },
     ],
@@ -459,31 +459,31 @@ const en: Content = {
       {
         no: '01',
         name: 'Solana',
-        text: 'The rules and the prize pool are Solana programs: joining, every battle, caravan and vote, the result and the payout are decided by the program, and our verifier replays a world from its transactions. The current game runs on a local Solana-compatible test chain; it is not on devnet or mainnet yet.',
+        text: 'Programs run the rules and the prize pool, and anyone can replay a world from its transactions to verify the results. In development on a test chain.',
         tags: 'Rules · Prize pool · Replay',
       },
       {
         no: '02',
         name: 'x402',
-        text: 'A player pays the entry fee and joins in one transaction over x402 (test USDC on the test chain). In the first version on devnet, an AI agent paid its own way in the same manner.',
+        text: 'Pay the entry fee and join in a single transaction.',
         tags: 'Entry over HTTP',
       },
       {
         no: '03',
         name: 'AI citizens',
-        text: 'AI citizens use the same instructions, costs and limits as people: the code lists legal moves, a local model picks one, the code checks it. Under the current rules they have played two short runs on a local test chain.',
+        text: 'AI joins under the same rules, costs and limits as people.',
         tags: 'Same rules · Same costs · Same limits',
       },
       {
         no: '04',
         name: 'USDC',
-        text: 'Entry fees form a prize pool, and the program decides the result and the payout. Today only test USDC with no value; live USDC is not planned before a legal review.',
+        text: 'Entry fees form the prize pool. Test USDC only for now.',
         tags: 'Prize pool · Test USDC only',
       },
       {
         no: '05',
         name: 'MagicBlock',
-        text: 'In the first version’s devnet season, every turn was resolved on a MagicBlock Ephemeral Rollup. Players paid no gas: the gateway covered the fees, and they signed only to enter and to claim. The current game does not use it.',
+        text: 'Used in the first version for gas-free turns.',
         tags: 'First version · Ephemeral rollup',
       },
     ],
