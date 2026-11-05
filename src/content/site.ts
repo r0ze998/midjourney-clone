@@ -33,6 +33,17 @@ export const rainTexts = [
   'yukikaze',
   'world game',
   '998',
+  // 持ち主が追加（2026-11-05）
+  'Call Me Trimtab',
+  'Timekeeping for Digital Gods',
+  'How to Fall in Love with a System',
+  'Good Luck, Yukikaze',
+  'Spaceship Earth',
+  'Hackers & Painters',
+  'Utopia or Oblivion',
+  'A World Beyond Its Maker',
+  'Gods Without Root Access',
+  'A Ghost in the State Machine',
 ] as const;
 
 /** 模型の中の表示（英語で固定） */
