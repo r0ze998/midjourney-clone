@@ -233,28 +233,6 @@ export default function HomePage({ lang }: { lang: Lang }) {
                 </ul>
               </div>
 
-              <h3 className="label mb-2 mt-12">{c.wylls.pastLabel}</h3>
-              <ul>
-                {c.wylls.past.map((p) => (
-                  <li key={p.name}>
-                    <ExternalLink
-                      href={p.href}
-                      hint={c.externalHint}
-                      arrow={false}
-                      className="group grid gap-x-6 gap-y-1 border-t border-rule py-4 md:grid-cols-[7rem_1fr_auto] md:items-baseline"
-                    >
-                      <span className="serif text-[1.25rem] transition-colors group-hover:text-ai-ink">{p.name}</span>
-                      <span>
-                        <span className="label block !normal-case !tracking-[0.06em]">{p.meta}</span>
-                        <span className="mt-1 block text-[0.875rem] leading-[1.85] text-ink-2">{p.desc}</span>
-                      </span>
-                      <span aria-hidden="true" className="row-link-arrow hidden font-mono text-sm text-ink-3 md:block">
-                        ↗
-                      </span>
-                    </ExternalLink>
-                  </li>
-                ))}
-              </ul>
             </div>
           </div>
         </section>

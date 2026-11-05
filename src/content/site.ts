@@ -17,8 +17,6 @@ export const site = {
   wylls: 'https://wylls-site.vercel.app/',
   wyllsRepo: 'https://github.com/r0ze998/wylls',
   wyllsPitch: 'https://youtu.be/WMAESO0xbek',
-  oxark: 'https://r0ze998.github.io/0xark/',
-  oxciv: 'https://r0ze998.github.io/0xciv/',
 } as const;
 
 // 背景に流れる文字列。旧サイトから引き継いだ社訓・断片。
@@ -119,8 +117,6 @@ export type Content = {
     /** 映像の窓の読み上げ用の説明（filmUi と同じ順） */
     films: { intro: string; storm: string; march: string; cart: string };
     video: { play: string; pause: string; soundOn: string; soundOff: string };
-    pastLabel: string;
-    past: { name: string; meta: string; desc: string; href: string }[];
   };
   /** 構想（まだ実装していない方向）。ラベルで構想だと示す */
   build: { label: string; heading: string; body: string[] };
@@ -280,22 +276,6 @@ const ja: Content = {
       soundOn: '音を出す',
       soundOff: '音を消す',
     },
-    pastLabel: 'これまでの作品',
-    past: [
-      {
-        name: '0xARK',
-        meta: '2026 · Solana devnet · 試験版',
-        desc: '1対1のカード対戦。手札を暗号学的に封をしてから公開し、カードごとの戦績がチェーン上に残る。',
-        href: site.oxark,
-      },
-      {
-        name: '0xCIV',
-        meta: '2026 · Starknet / Dojo · ゲームジャム作品',
-        // 出典: 0xciv/README.md、dojoengine/game-jams PR #270（受賞なし）
-        desc: 'AIエージェントが文明を率いる小さな戦略ゲーム。Dojo Game Jam VIII の参加作。',
-        href: site.oxciv,
-      },
-    ],
   },
   build: {
     label: '04 — 構想',
@@ -504,21 +484,6 @@ const en: Content = {
       soundOn: 'Sound on',
       soundOff: 'Sound off',
     },
-    pastLabel: 'Earlier work',
-    past: [
-      {
-        name: '0xARK',
-        meta: '2026 · Solana devnet · test version',
-        desc: 'One-on-one card battles. Hands are sealed cryptographically before reveal, and each card keeps its record on-chain.',
-        href: site.oxark,
-      },
-      {
-        name: '0xCIV',
-        meta: '2026 · Starknet / Dojo · game jam entry',
-        desc: 'A small strategy game where AI agents lead civilizations. An entry to Dojo Game Jam VIII.',
-        href: site.oxciv,
-      },
-    ],
   },
   build: {
     label: '04 — Vision',
