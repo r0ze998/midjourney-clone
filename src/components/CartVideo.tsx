@@ -10,6 +10,7 @@ export default function CartVideo({
   bare = false,
   src = '/media/cart.mp4',
   poster = '/media/cart-poster.webp',
+  sound,
 }: {
   caption: string;
   play: string;
@@ -17,10 +18,13 @@ export default function CartVideo({
   bare?: boolean;
   src?: string;
   poster?: string;
+  /** 音のある映像：音を出す・消すボタンの文言。最初は消音で再生する */
+  sound?: { on: string; off: string };
 }) {
   const ref = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
   const [userPaused, setUserPaused] = useState(false);
+  const [muted, setMuted] = useState(true);
 
   useEffect(() => {
     const v = ref.current;
@@ -41,7 +45,7 @@ export default function CartVideo({
         <video
           ref={ref}
           className="block aspect-video h-auto w-full"
-          muted
+          muted={muted}
           loop
           playsInline
           preload="none"
@@ -71,6 +75,27 @@ export default function CartVideo({
         >
           {playing ? pause : play}
         </button>
+        {sound && (
+          <button
+            type="button"
+            aria-pressed={!muted}
+            onClick={() => {
+              const v = ref.current;
+              if (!v) return;
+              const next = !muted;
+              v.muted = next;
+              setMuted(next);
+              // 音を出すときは、止まっていれば再生する
+              if (!next && v.paused) {
+                setUserPaused(false);
+                v.play().catch(() => {});
+              }
+            }}
+            className="absolute bottom-2 right-2 min-h-11 border border-rule bg-card/95 px-3 font-mono text-[0.75rem] text-ink hover:border-ink"
+          >
+            {muted ? sound.on : sound.off}
+          </button>
+        )}
       </div>
       {!bare && <figcaption className="mt-3 text-[0.75rem] leading-relaxed text-ink-3">{caption}</figcaption>}
     </figure>

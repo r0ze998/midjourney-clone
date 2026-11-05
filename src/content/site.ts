@@ -62,6 +62,9 @@ export const modelUi = {
 } as const;
 
 /** Wylls の欄に散らす映像の窓（窓の帯の文字は英語で固定）。持ち主の映像 2 本（2026-11-05）と、模型から書き出した荷車の映像 */
+/** Wylls のメインの映像（持ち主の intro、2026-11-05）。音あり、最初は消音 */
+export const introUi = { src: '/media/intro.mp4', poster: '/media/intro-poster.webp', title: 'Wylls — Intro' } as const;
+
 export const filmUi = [
   { key: 'storm', src: '/media/storm-a.mp4', poster: '/media/storm-a-poster.webp', title: 'Wylls — Storm', accent: 'signal' },
   { key: 'march', src: '/media/storm-b.mp4', poster: '/media/storm-b-poster.webp', title: 'Wylls — March', accent: 'signal' },
@@ -114,8 +117,8 @@ export type Content = {
     tech: { no: string; name: string; text: string; tags: string }[];
     links: Link[];
     /** 映像の窓の読み上げ用の説明（filmUi と同じ順） */
-    films: { storm: string; march: string; cart: string };
-    video: { play: string; pause: string };
+    films: { intro: string; storm: string; march: string; cart: string };
+    video: { play: string; pause: string; soundOn: string; soundOff: string };
     pastLabel: string;
     past: { name: string; meta: string; desc: string; href: string }[];
   };
@@ -266,6 +269,7 @@ const ja: Content = {
     ],
     // 映像の窓の読み上げ用（画面には出さない）
     films: {
+      intro: 'Wyllsの紹介映像。6 つの国のひとつの世界、村を育てる、荷を送る、国の投票、同じルールで遊ぶAIの住人、戦い。開発中のウェブクライアントを、ローカルのテスト世界で早回しにしたもの。',
       storm: 'Wyllsの映像。嵐の夜、雷が落ちる山と、ヘックスの地図の上の町と湖。',
       march: 'Wyllsの映像。雨のヘックスの地図と、ぬかるんだ道を行進する兵の列。',
       cart: '荷車がヘックスの地図の道を進む映像。サイトの模型から書き出したもの。',
@@ -273,6 +277,8 @@ const ja: Content = {
     video: {
       play: '再生',
       pause: '一時停止',
+      soundOn: '音を出す',
+      soundOff: '音を消す',
     },
     pastLabel: 'これまでの作品',
     past: [
@@ -487,6 +493,7 @@ const en: Content = {
       { label: 'Source code', href: site.wyllsRepo, note: 'GitHub' },
     ],
     films: {
+      intro: 'The Wylls introduction: one world of six nations, growing a village, sending goods, nations voting, AI citizens playing by the same rules, and a battle. Footage of the web client in development on local test worlds, accelerated.',
       storm: 'A Wylls film: a stormy night, lightning striking a mountain above a town and lakes on a hex map.',
       march: 'A Wylls film: a hex map in the rain, and a column of soldiers marching along a muddy road.',
       cart: 'A cart moving along a road on the hex map, exported from this site’s model.',
@@ -494,6 +501,8 @@ const en: Content = {
     video: {
       play: 'Play',
       pause: 'Pause',
+      soundOn: 'Sound on',
+      soundOff: 'Sound off',
     },
     pastLabel: 'Earlier work',
     past: [

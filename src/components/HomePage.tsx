@@ -194,8 +194,8 @@ export default function HomePage({ lang }: { lang: Lang }) {
               <p className="serif mt-5 text-[1.125rem] leading-[1.75] md:text-[1.25rem]">{c.wylls.oneLiner}</p>
               <Paras items={c.wylls.body} className="mt-4 max-w-[42rem]" />
 
-              {/* 映像の窓を散らして置く（持ち主の映像 2 本と、模型の荷車） */}
-              <FilmCollage labels={c.wylls.films} play={c.wylls.video.play} pause={c.wylls.video.pause} />
+              {/* メインの紹介映像と、散らした映像の窓（持ち主の映像 2 本と、模型の荷車） */}
+              <FilmCollage labels={c.wylls.films} play={c.wylls.video.play} pause={c.wylls.video.pause} sound={{ on: c.wylls.video.soundOn, off: c.wylls.video.soundOff }} />
 
               <p className="mt-10 max-w-[46rem] text-[0.9375rem] leading-[2] text-ink-2">{c.wylls.about}</p>
 
