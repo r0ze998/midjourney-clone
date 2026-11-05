@@ -32,7 +32,8 @@ export const RIDE_ROUTE = 'r7';
  * orbitAz は訪問者がドラッグで回した分、spin は場面ごとのゆっくりした回転（度）。
  */
 export function poseFor(views: ViewWeights, st: ModelState, aspect: number, orbitAz = 0, spin = 0): Pose {
-  const pull = aspect < 1 ? 1.75 : aspect < 1.4 ? 1.25 : 1;
+  // 縦長（スマホ）は引いて全体を収める。引きすぎると模型が小さく読めないので 1.5 に
+  const pull = aspect < 1 ? 1.5 : aspect < 1.4 ? 1.25 : 1;
   const az0 = -14 + orbitAz + spin;
   const poses: Record<string, Pose> = {
     overview: orbit(new THREE.Vector3(0.4, 0, 0.9), 50 * pull, 48, az0),

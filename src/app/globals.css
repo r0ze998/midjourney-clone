@@ -251,3 +251,43 @@ html[data-globe-in-view='true'] .yk-hero-fallback {
 .yk-globe-tags > div[data-small='1'] i {
   display: none;
 }
+
+/*
+ * スマホ（1024px 未満）の読みやすさ。デスクトップのデザインは変えない。
+ * - 二次・三次の文字色を明るく（黒地とのコントラスト 9.3→11.6、5.4→7.4）
+ * - 10〜12px の文字を 1 段大きく、本文を 16px に（iPhone で読む距離に合わせる）
+ * - 押せるものの高さを 44px 以上に
+ * 層の外に置くので、Tailwind のユーティリティより優先される。
+ */
+@media (max-width: 1023px) {
+  :root {
+    --color-ink-2: #bcc4bd;
+    --color-ink-3: #959e96;
+  }
+  .label {
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+  }
+  .text-\[0\.625rem\] {
+    font-size: 0.6875rem;
+  }
+  .text-\[0\.6875rem\] {
+    font-size: 0.75rem;
+  }
+  .text-\[0\.75rem\] {
+    font-size: 0.8125rem;
+  }
+  .text-\[0\.8125rem\],
+  .text-\[0\.875rem\] {
+    font-size: 0.9375rem;
+  }
+  .text-\[0\.9375rem\] {
+    font-size: 1rem;
+  }
+  .min-h-9 {
+    min-height: 2.75rem;
+  }
+  .yk-globe-tags > div {
+    font-size: 0.75rem;
+  }
+}
