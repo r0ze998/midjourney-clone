@@ -3,6 +3,10 @@ import { useEffect, useRef, useState } from 'react';
 
 // 短い繰り返しの映像。画面に入ったときだけ再生し、出たら止める。動きを減らす設定では自動で再生しない。
 // 映像が読めなくても、静止画（poster）で内容が伝わるようにする。
+// 再生・一時停止と音のボタン：アイコンだけの丸いボタン。読み上げには文言（aria-label）を渡す
+const ICON_BTN =
+  'absolute bottom-2 grid h-11 w-11 place-items-center rounded-full border border-rule/80 bg-card/80 text-ink backdrop-blur-sm transition-colors hover:border-ink hover:bg-card focus-visible:outline focus-visible:outline-1 focus-visible:outline-signal';
+
 export default function CartVideo({
   caption,
   play,
@@ -71,9 +75,20 @@ export default function CartVideo({
               v.pause();
             }
           }}
-          className="absolute bottom-2 left-2 min-h-11 border border-rule bg-card/95 px-3 font-mono text-[0.75rem] text-ink hover:border-ink"
+          aria-label={playing ? pause : play}
+          title={playing ? pause : play}
+          className={`${ICON_BTN} left-2`}
         >
-          {playing ? pause : play}
+          {playing ? (
+            <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 fill-current">
+              <rect x="6" y="5" width="4" height="14" rx="0.5" />
+              <rect x="14" y="5" width="4" height="14" rx="0.5" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 fill-current">
+              <path d="M8 5.5v13l11-6.5z" />
+            </svg>
+          )}
         </button>
         {sound && (
           <button
@@ -91,9 +106,21 @@ export default function CartVideo({
                 v.play().catch(() => {});
               }
             }}
-            className="absolute bottom-2 right-2 min-h-11 border border-rule bg-card/95 px-3 font-mono text-[0.75rem] text-ink hover:border-ink"
+            aria-label={muted ? sound.on : sound.off}
+            title={muted ? sound.on : sound.off}
+            className={`${ICON_BTN} right-2`}
           >
-            {muted ? sound.on : sound.off}
+            <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor" />
+              {muted ? (
+                <path d="M16 9.5l5 5M21 9.5l-5 5" />
+              ) : (
+                <>
+                  <path d="M15.5 9a4 4 0 0 1 0 6" />
+                  <path d="M18 6.5a7.5 7.5 0 0 1 0 11" />
+                </>
+              )}
+            </svg>
           </button>
         )}
       </div>
