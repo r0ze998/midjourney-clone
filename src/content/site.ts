@@ -121,9 +121,11 @@ export type Content = {
     globe: {
       label: string;
       canvasLabel: string;
-      choose: string;
-      hint: string;
-      note: string;
+      staticNotice: string;
+      shipment: string;
+      departed: string;
+      arrived: string;
+      units: string;
       stillAlt: string;
     };
   };
@@ -282,9 +284,11 @@ const ja: Content = {
     globe: {
       label: 'ひとつの世界と、6 つの集落',
       canvasLabel: '回せる球体の模型。6 つの集落と、集落をめぐる荷の流れ。ドラッグまたは矢印キーで回せます。',
-      choose: '集落を見る',
-      hint: 'ドラッグで回せます。しばらく触らないと、自動で回ります。',
-      note: 'ワールド・ゲームの考え方を描いた模式図です。地形・集落・物流は、実際の地理や Wylls のゲーム内容ではありません。',
+      staticNotice: '静止画像を表示しています。回転操作は利用できません。',
+      shipment: '運搬中',
+      departed: '出発',
+      arrived: '到着',
+      units: '単位',
       stillAlt: '球体の模型。緑の大陸に 6 つの集落があり、集落のあいだを荷が弧を描いて運ばれている。',
     },
   },
@@ -461,9 +465,11 @@ const en: Content = {
     globe: {
       label: 'One world, six settlements',
       canvasLabel: 'A globe you can turn: six settlements and the goods that travel between them. Drag, or use the arrow keys.',
-      choose: 'Go to settlement',
-      hint: 'Drag to turn it. Left alone, it turns by itself.',
-      note: 'A schematic of the World Game idea. The land, settlements and logistics are not real geography and not Wylls game content.',
+      staticNotice: 'A still image is shown. Rotation is unavailable.',
+      shipment: 'In transit',
+      departed: 'Departed',
+      arrived: 'Arrived',
+      units: 'units',
       stillAlt: 'A globe: six settlements on green continents, with goods carried between them along arcs.',
     },
   },

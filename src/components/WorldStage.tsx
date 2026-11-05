@@ -454,11 +454,11 @@ export default function WorldStage({ stillSrc, stillAlt }: { stillSrc: string; s
 
   return (
     <>
-      <canvas ref={ref} aria-hidden="true" className="pointer-events-none fixed inset-x-0 top-0 -z-10 block h-lvh w-full font-mono" />
-      <div ref={calloutRef} aria-hidden="true" className="pointer-events-none fixed inset-x-0 top-0 z-10 h-lvh w-full" />
+      <canvas ref={ref} aria-hidden="true" className="yk-world-stage pointer-events-none fixed inset-x-0 top-0 -z-10 block h-lvh w-full font-mono" />
+      <div ref={calloutRef} aria-hidden="true" className="yk-world-callouts pointer-events-none fixed inset-x-0 top-0 z-10 h-lvh w-full" />
       {fallback && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={stillSrc} alt={stillAlt} className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-[46svh] w-full object-contain lg:left-[30%] lg:h-svh lg:w-[70%]" />
+        <img src={stillSrc} alt={stillAlt} className="yk-hero-fallback pointer-events-none fixed inset-x-0 top-0 -z-10 h-[46svh] w-full object-contain lg:left-[30%] lg:h-svh lg:w-[70%]" />
       )}
     </>
   );

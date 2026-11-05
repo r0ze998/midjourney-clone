@@ -3,7 +3,7 @@
 // 平らな陰影のローポリ、同じ地形の色、在庫は箱の数、荷は道の上を動く。
 
 import * as THREE from 'three';
-import { GLOBE_ROUTES, LANDS, NATIONS, isLand, type GlobeState } from '../model/globe';
+import { GLOBE_EVENT_SPAN, GLOBE_ROUTES, LANDS, NATIONS, isLand, type GlobeState } from '../model/globe';
 import { rng } from '../model/hex';
 
 const DEG = Math.PI / 180;
@@ -54,8 +54,8 @@ const mountainAt = (lat: number, lon: number) => {
 const C = {
   grass: new THREE.Color('#7d9651'),
   grass2: new THREE.Color('#6d8546'),
-  plains: new THREE.Color('#bfae6c'),
-  desert: new THREE.Color('#c9b27a'),
+  plains: new THREE.Color('#aa9b6c'),
+  desert: new THREE.Color('#b7a373'),
   forest: new THREE.Color('#4d6a3b'),
   hills: new THREE.Color('#8e9a5c'),
   rock: new THREE.Color('#8a847a'),
@@ -67,9 +67,49 @@ const C = {
   soil: new THREE.Color('#3b2c1e'),
 };
 
-/** 乾いた帯（模式図。砂漠に見せる場所） */
-const dry = (lat: number, lon: number) =>
-  (lat > 14 && lat < 33 && lon > -17 && lon < 62) || (lat > 20 && lat < 45 && lon > 62 && lon < 110 && lat > 36) || (lat < -19 && lat > -32 && lon > 118 && lon < 142) || (lat > 26 && lat < 37 && lon > -117 && lon < -104);
+// 輪郭の線分までの距離。岸を海面に向けてなだらかに沈めるために使う。
+// 度数を緯度で補正するので、高緯度の海岸もほぼ同じ幅に見える。
+const coastSegments = LANDS.flatMap((poly) => poly.map(([x, y], i) => {
+  const [x2, y2] = poly[(i + 1) % poly.length];
+  return { x, y, x2, y2, mid: (x + x2) / 2, minX: Math.min(x, x2), maxX: Math.max(x, x2), minY: Math.min(y, y2), maxY: Math.max(y, y2) };
+}));
+const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
+const coastDistance = (lat: number, lon: number) => {
+  let best = 8 * 8;
+  const cos = Math.max(0.25, Math.cos(lat * DEG));
+  for (const s of coastSegments) {
+    if (lat < s.minY - 8 || lat > s.maxY + 8) continue;
+    const shift = 360 * Math.round((lon - s.mid) / 360);
+    if ((s.minX + shift - lon) * cos > 8 || (lon - s.maxX - shift) * cos > 8) continue;
+    const ax = (s.x + shift - lon) * cos, ay = s.y - lat;
+    const bx = (s.x2 + shift - lon) * cos, by = s.y2 - lat;
+    const dx = bx - ax, dy = by - ay;
+    const t = clamp01(-(ax * dx + ay * dy) / (dx * dx + dy * dy || 1));
+    const px = ax + t * dx, py = ay + t * dy;
+    best = Math.min(best, px * px + py * py);
+  }
+  return Math.sqrt(best);
+};
+
+// 乾燥地は矩形ではなく、ゆるい楕円と球面ノイズの等高線にする。
+const DRY_REGIONS = [
+  { lat: 22, lon: 3, ry: 9, rx: 20 }, // 北アフリカ西部
+  { lat: 20, lon: 27, ry: 8, rx: 19 }, // 北アフリカ東部
+  { lat: 24, lon: 48, ry: 9, rx: 18 }, // 西アジア
+  { lat: 39, lon: 84, ry: 7, rx: 23 }, // 中央アジア
+  { lat: -24, lon: 133, ry: 9, rx: 18 }, // 南東の大陸
+  { lat: 32, lon: -111, ry: 8, rx: 15 }, // 北西の乾燥地
+];
+const dryness = (lat: number, lon: number, p: THREE.Vector3) => {
+  const warp = (fbm(p, 8) - 0.5) * 0.32;
+  let strongest = 0;
+  for (const r of DRY_REGIONS) {
+    const dx = ((lon - r.lon + 540) % 360 - 180) / r.rx;
+    const dy = (lat - r.lat) / r.ry;
+    strongest = Math.max(strongest, clamp01((1.18 - Math.hypot(dx, dy) + warp) / 0.34));
+  }
+  return strongest;
+};
 
 export type Globe3D = ReturnType<typeof buildGlobe>;
 
@@ -81,8 +121,9 @@ export function buildGlobe(opts: { rich: boolean }) {
   const detail = opts.rich ? 34 : 24;
   const ico = new THREE.IcosahedronGeometry(1, detail); // 面は独立（index なし）
   const pos = ico.getAttribute('position');
-  const landCache = new Map<number, { land: boolean; h: number; lat: number; lon: number }>();
+  const landCache = new Map<number, { land: boolean; h: number; shore: number }>();
   const v = new THREE.Vector3();
+  const noisePoint = new THREE.Vector3();
   const info = (x: number, y: number, z: number) => {
     // 同じ点は同じ値に（面ごとに頂点が別でも、つなぎ目が割れないように）
     const k = Math.round((x + 2) * 2e4) * 1e10 + Math.round((y + 2) * 2e4) * 1e5 + Math.round((z + 2) * 2e4);
@@ -90,19 +131,28 @@ export function buildGlobe(opts: { rich: boolean }) {
     if (!c) {
       v.set(x, y, z);
       const { lat, lon } = toLatLon(v);
-      const land = isLand(lon, lat);
+      // 広い波長のゆらぎだけを輪郭に足し、三角形ごとのギザギザを抑える。
+      const sampleLat = lat + (fbm(v, 7) - 0.5) * 1.5;
+      const sampleLon = lon + (fbm(noisePoint.copy(v).addScalar(1.7), 7) - 0.5) * 1.5 / Math.max(0.45, Math.cos(lat * DEG));
+      const land = isLand(sampleLon, sampleLat);
+      const shore = coastDistance(sampleLat, sampleLon);
       const n = fbm(v, 3.2);
-      // 陸は海面より少し上に、ノイズと山脈で起伏を付ける。海は沈めて、浅いところと深いところを分ける
-      const h = land ? SEA + 0.006 + n * 0.016 + mountainAt(lat, lon) : SEA - 0.006 - n * 0.016;
-      c = { land, h, lat, lon };
+      // 岸では水面を横切るように高さを連続させる。急な段差は水面下へ隠れる。
+      const fade = clamp01(shore / 2.6);
+      const h = land
+        ? SEA - 0.002 + fade * (0.012 + n * 0.016 + mountainAt(lat, lon))
+        : SEA - 0.002 - clamp01(shore / 4) * (0.006 + n * 0.016);
+      c = { land, h, shore };
       landCache.set(k, c);
     }
     return c;
   };
   const colors: number[] = [];
   const treeSpots: THREE.Vector3[] = [];
+  const peakSpots: { p: THREE.Vector3; size: number; snow: boolean }[] = [];
   const centroid = new THREE.Vector3();
   const tint = new THREE.Color();
+  const dryTint = new THREE.Color();
   for (let f = 0; f < pos.count; f += 3) {
     const vs = [0, 1, 2].map((k) => info(pos.getX(f + k), pos.getY(f + k), pos.getZ(f + k)));
     vs.forEach((c, k) => {
@@ -116,25 +166,35 @@ export function buildGlobe(opts: { rich: boolean }) {
     const { lat, lon } = toLatLon(centroid);
     const h = centroid.length();
     const n = fbm(centroid, 5.5);
+    const shore = (vs[0].shore + vs[1].shore + vs[2].shore) / 3;
+    const mountain = mountainAt(lat, lon);
+    // Low-poly peaks give the larger mountain ranges a readable silhouette at overview scale.
+    // They are placed only on inland terrain and share one instanced mesh per material.
+    if (lands === 3 && shore > 4 && mountain > 0.019 && rand() < (opts.rich ? 0.018 : 0.012)) {
+      peakSpots.push({ p: centroid.clone(), size: 0.7 + Math.min(0.55, mountain * 14) + rand() * 0.45, snow: mountain > 0.034 });
+    }
     if (lands === 0) {
       // 海底：岸に近いほど明るい（水面ごしに浅瀬が見える）
-      tint.copy(C.deep).lerp(C.shelf, Math.max(0, Math.min(1, (h - (SEA - 0.022)) / 0.016)));
+      tint.copy(C.deep).lerp(C.shelf, 0.9 * (1 - clamp01(shore / 4)));
     } else if (lands < 3) {
       // 岸の斜面：砂と土のあいだの色（明るい崖が立たないように）
       tint.copy(C.beach).lerp(C.soil, lands === 1 ? 0.55 : 0.3);
     } else {
       const alt = h - SEA;
       const al = Math.abs(lat);
+      const dry = dryness(lat, lon, noisePoint.copy(centroid).normalize());
       if (alt > 0.046) tint.copy(C.snow);
       else if (alt > 0.03) tint.copy(C.rock);
       else if (al > 66) tint.copy(n > 0.5 ? C.snow : C.tundra);
       else if (al > 56) tint.copy(C.tundra).lerp(C.forest, n * 0.6);
-      else if (dry(lat, lon)) tint.copy(n > 0.62 ? C.plains : C.desert);
       else if (n > 0.57) {
         tint.copy(C.forest);
-        if (opts.rich ? rand() < 0.55 : rand() < 0.25) treeSpots.push(centroid.clone());
+        if (dry < 0.3 && shore > 2.6 && (opts.rich ? rand() < 0.55 : rand() < 0.25)) treeSpots.push(centroid.clone());
       } else if (alt > 0.024) tint.copy(C.hills);
       else tint.copy(n > 0.45 ? C.grass2 : C.grass);
+      dryTint.copy(C.plains).lerp(C.desert, clamp01((n - 0.25) * 1.6));
+      tint.lerp(dryTint, dry * 0.9);
+      tint.lerp(C.beach, 0.55 * (1 - clamp01(shore / 2.6)));
     }
     // 面ごとに少しだけ明るさをゆらす（削り出したような面に）
     tint.offsetHSL(0, 0, (hash(f, 3, 7) - 0.5) * 0.035);
@@ -202,16 +262,37 @@ export function buildGlobe(opts: { rich: boolean }) {
   const q = new THREE.Quaternion();
   const m4 = new THREE.Matrix4();
   const s3 = new THREE.Vector3();
-  const trees = new THREE.InstancedMesh(new THREE.ConeGeometry(0.006, 0.02, 5, 1).translate(0, 0.01, 0), new THREE.MeshStandardMaterial({ color: '#2f4a28', roughness: 0.9, flatShading: true }), Math.max(1, treeSpots.length));
+  const trees = new THREE.InstancedMesh(new THREE.ConeGeometry(0.007, 0.024, 5, 1).translate(0, 0.012, 0), new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.95, flatShading: true }), Math.max(1, treeSpots.length));
   trees.count = treeSpots.length;
   treeSpots.forEach((p, i) => {
     q.setFromUnitVectors(up, p.clone().normalize());
     const k = 0.7 + hash(i, 1, 2) * 0.7;
     m4.compose(p, q, s3.set(k, k, k));
     trees.setMatrixAt(i, m4);
+    trees.setColorAt(i, new THREE.Color().setHSL(0.28 + hash(i, 3, 7) * 0.025, 0.29, 0.18 + hash(i, 9, 2) * 0.08));
   });
+  if (trees.instanceColor) trees.instanceColor.needsUpdate = true;
   trees.castShadow = true;
   root.add(trees);
+
+  // Clustered angular peaks read as a game-board mountain range without extra draw calls per peak.
+  const peakGeo = new THREE.ConeGeometry(0.014, 0.044, 5).translate(0, 0.022, 0);
+  const peakMat = new THREE.MeshStandardMaterial({ color: '#8c8e7e', roughness: 0.96, flatShading: true });
+  const peaks = new THREE.InstancedMesh(peakGeo, peakMat, Math.max(1, peakSpots.length));
+  peaks.count = peakSpots.length;
+  const snowGeo = new THREE.ConeGeometry(0.006, 0.013, 5).translate(0, 0.038, 0);
+  const snowMat = new THREE.MeshStandardMaterial({ color: '#aeb9ad', roughness: 0.95, flatShading: true });
+  const snowySpots = peakSpots.filter((p) => p.snow);
+  const snowPeaks = new THREE.InstancedMesh(snowGeo, snowMat, Math.max(1, snowySpots.length));
+  snowPeaks.count = snowySpots.length;
+  const placePeak = (spot: { p: THREE.Vector3; size: number }, i: number, mesh: THREE.InstancedMesh) => {
+    q.setFromUnitVectors(up, spot.p.clone().normalize());
+    m4.compose(spot.p, q, s3.setScalar(spot.size));
+    mesh.setMatrixAt(i, m4);
+  };
+  peakSpots.forEach((spot, i) => placePeak(spot, i, peaks));
+  snowySpots.forEach((spot, i) => placePeak(spot, i, snowPeaks));
+  root.add(peaks, snowPeaks);
 
   // ---- 6 つの集落：家の群れ、灯り、在庫の箱 ----
   const surface = (lat: number, lon: number) => {
@@ -223,16 +304,97 @@ export function buildGlobe(opts: { rich: boolean }) {
   const houseGeo = new THREE.BoxGeometry(0.012, 0.009, 0.012).translate(0, 0.0045, 0);
   const roofGeo = new THREE.ConeGeometry(0.0105, 0.009, 4, 1).rotateY(Math.PI / 4).translate(0, 0.0135, 0);
   const crateGeo = new THREE.BoxGeometry(0.0075, 0.0075, 0.0075).translate(0, 0.00375, 0);
-  const walls = new THREE.MeshStandardMaterial({ color: '#d9d1bf', roughness: 0.85, flatShading: true, emissive: '#ffb25c', emissiveIntensity: 0.12 });
-  const roofs = new THREE.MeshStandardMaterial({ color: '#b8492f', roughness: 0.7, flatShading: true });
+  const walls = new THREE.MeshStandardMaterial({ color: '#e6dfce', roughness: 0.85, flatShading: true, emissive: '#ffb25c', emissiveIntensity: 0.12 });
+  const roofs = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.7, flatShading: true });
+  const roofColors = ['#557344', '#4c8380', '#7e858e', '#bb9453', '#5a8b9b', '#b36a4a'].map((c) => new THREE.Color(c));
   const crateMat = new THREE.MeshStandardMaterial({ color: '#c89a5a', roughness: 0.8, flatShading: true });
   const HOUSES = 7;
   const CRATES = 20; // 1 箱 = 5 単位。100 単位まで見える
   const houseMesh = new THREE.InstancedMesh(houseGeo, walls, NATIONS.length * HOUSES);
   const roofMesh = new THREE.InstancedMesh(roofGeo, roofs, NATIONS.length * HOUSES);
   const crates = new THREE.InstancedMesh(crateGeo, crateMat, NATIONS.length * CRATES);
+  const baseGeo = new THREE.CylinderGeometry(0.095, 0.101, 0.014, 6).translate(0, -0.007, 0);
+  const baseMat = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 1, flatShading: true });
+  const bases = new THREE.InstancedMesh(baseGeo, baseMat, NATIONS.length);
+  const baseColors = ['#76865d', '#6c9290', '#969b8e', '#ad9b69', '#6b9298', '#ae7a5d'].map((c) => new THREE.Color(c));
+  const poleGeo = new THREE.CylinderGeometry(0.002, 0.0025, 0.075, 5).translate(0, 0.0375, 0);
+  const poleMat = new THREE.MeshStandardMaterial({ color: '#d8c69d', roughness: 0.9, flatShading: true });
+  const poles = new THREE.InstancedMesh(poleGeo, poleMat, NATIONS.length);
+  const flagGeo = new THREE.BoxGeometry(0.03, 0.016, 0.0015).translate(0.015, 0.066, 0);
+  const flagMat = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.9, flatShading: true, side: THREE.DoubleSide });
+  const flags = new THREE.InstancedMesh(flagGeo, flagMat, NATIONS.length);
   houseMesh.castShadow = roofMesh.castShadow = crates.castShadow = true;
   const frames: { pos: THREE.Vector3; q: THREE.Quaternion; east: THREE.Vector3; north: THREE.Vector3; normal: THREE.Vector3 }[] = [];
+  // 名前に対応する小さなランドマーク。地理や建築の再現ではなく模型上の目印。
+  const landmarkMat = {
+    pine: new THREE.MeshStandardMaterial({ color: '#345934', roughness: 0.95, flatShading: true }),
+    stream: new THREE.MeshStandardMaterial({ color: '#5ca9b2', roughness: 0.42, metalness: 0.08, flatShading: true }),
+    stone: new THREE.MeshStandardMaterial({ color: '#aaa59a', roughness: 0.95, flatShading: true }),
+    wood: new THREE.MeshStandardMaterial({ color: '#9f794e', roughness: 0.88, flatShading: true }),
+    ochre: new THREE.MeshStandardMaterial({ color: '#c6a46c', roughness: 0.9, flatShading: true }),
+    beacon: new THREE.MeshStandardMaterial({ color: '#e4d7b9', roughness: 0.8, flatShading: true, emissive: '#ffc976', emissiveIntensity: 0.18 }),
+    clay: new THREE.MeshStandardMaterial({ color: '#ae674b', roughness: 0.88, flatShading: true }),
+  };
+  const windmillRotors: THREE.Group[] = [];
+  const addBox = (group: THREE.Group, x: number, z: number, w: number, d: number, h: number, mat: THREE.Material, y = 0) => {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+    mesh.position.set(x, y + h / 2, z);
+    group.add(mesh);
+  };
+  const landmark = (ni: number, pos0: THREE.Vector3, normal: THREE.Vector3, qn: THREE.Quaternion) => {
+    const group = new THREE.Group();
+    group.position.copy(pos0).addScaledVector(normal, 0.003);
+    group.quaternion.copy(qn);
+    group.scale.setScalar(3.2);
+    root.add(group);
+    if (ni === 0) { // Woodland: 一段高い針葉樹の群れ
+      for (const [x, z, h] of [[-0.034, -0.014, 0.038], [-0.04, 0.018, 0.031], [0.033, 0.026, 0.034]]) {
+        const tree = new THREE.Mesh(new THREE.ConeGeometry(0.010, h, 5), landmarkMat.pine);
+        tree.position.set(x, h / 2, z);
+        group.add(tree);
+      }
+    } else if (ni === 1) { // Riverside: 流れと渡し橋
+      addBox(group, -0.035, 0, 0.009, 0.077, 0.0007, landmarkMat.stream);
+      addBox(group, -0.035, 0.004, 0.027, 0.006, 0.004, landmarkMat.wood, 0.003);
+    } else if (ni === 2) { // Highland: 石の段と見張り塔
+      addBox(group, -0.031, -0.006, 0.032, 0.028, 0.008, landmarkMat.stone);
+      addBox(group, -0.031, -0.006, 0.017, 0.017, 0.043, landmarkMat.stone, 0.008);
+      const cap = new THREE.Mesh(new THREE.ConeGeometry(0.013, 0.012, 4), landmarkMat.clay);
+      cap.position.set(-0.031, 0.057, -0.006);
+      cap.rotation.y = Math.PI / 4;
+      group.add(cap);
+    } else if (ni === 3) { // Grassland: 風車の羽根
+      addBox(group, 0.034, 0.008, 0.012, 0.012, 0.04, landmarkMat.ochre);
+      const rotor = new THREE.Group();
+      rotor.position.set(0.034, 0.037, 0.015);
+      for (let i = 0; i < 4; i++) {
+        const blade = new THREE.Mesh(new THREE.BoxGeometry(0.006, 0.026, 0.0015), landmarkMat.beacon);
+        blade.position.y = 0.015;
+        const arm = new THREE.Group();
+        arm.rotation.z = (i * Math.PI) / 2;
+        arm.add(blade);
+        rotor.add(arm);
+      }
+      rotor.add(new THREE.Mesh(new THREE.SphereGeometry(0.005, 6, 4), landmarkMat.wood));
+      group.add(rotor);
+      windmillRotors.push(rotor);
+    } else if (ni === 4) { // Coastland: 灯台と桟橋
+      const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.010, 0.047, 7), landmarkMat.beacon);
+      tower.position.set(-0.033, 0.0235, 0.008);
+      group.add(tower);
+      const top = new THREE.Mesh(new THREE.ConeGeometry(0.012, 0.009, 7), landmarkMat.stream);
+      top.position.set(-0.033, 0.052, 0.008);
+      group.add(top);
+      addBox(group, 0.029, -0.01, 0.013, 0.048, 0.005, landmarkMat.wood);
+    } else { // Southland: 赤土の塔と日除け
+      for (const [x, z, h] of [[-0.033, -0.008, 0.034], [-0.023, 0.018, 0.026], [0.036, 0.008, 0.035]]) {
+        const spire = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.009, h, 5), landmarkMat.clay);
+        spire.position.set(x, h / 2, z);
+        group.add(spire);
+      }
+      addBox(group, 0.006, -0.028, 0.033, 0.013, 0.005, landmarkMat.ochre, 0.021);
+    }
+  };
   const glowTex = (() => {
     const c = document.createElement('canvas');
     c.width = c.height = 64;
@@ -248,40 +410,75 @@ export function buildGlobe(opts: { rich: boolean }) {
   })();
   const glows: THREE.Sprite[] = [];
   const rings: THREE.Mesh[] = [];
+  const eventRings: THREE.Mesh[] = [];
   NATIONS.forEach((n, ni) => {
     const normal = geo(n.lat, n.lon).normalize();
-    const pos0 = normal.clone().multiplyScalar(surface(n.lat, n.lon));
+    const pos0 = normal.clone().multiplyScalar(surface(n.lat, n.lon) + 0.004);
     const qn = new THREE.Quaternion().setFromUnitVectors(up, normal);
     const east = new THREE.Vector3(0, 1, 0).cross(normal).normalize();
     const north = normal.clone().cross(east).normalize();
     frames.push({ pos: pos0, q: qn, east, north, normal });
+    m4.compose(pos0, qn, s3.setScalar(1));
+    bases.setMatrixAt(ni, m4);
+    bases.setColorAt(ni, baseColors[ni]);
+    const flagPos = pos0.clone().addScaledVector(east, -0.045).addScaledVector(north, -0.043);
+    m4.compose(flagPos, qn, s3.setScalar(1));
+    poles.setMatrixAt(ni, m4);
+    flags.setMatrixAt(ni, m4);
+    flags.setColorAt(ni, roofColors[ni]);
     const r0 = rng(40 + ni);
     for (let i = 0; i < HOUSES; i++) {
       const a = (i / HOUSES) * Math.PI * 2 + r0() * 0.5;
-      const d = i === 0 ? 0 : 0.012 + r0() * 0.012;
+      const d = i === 0 ? 0 : 0.019 + r0() * 0.018;
       const p = pos0.clone().addScaledVector(east, Math.cos(a) * d).addScaledVector(north, Math.sin(a) * d);
       const qi = qn.clone().multiply(new THREE.Quaternion().setFromAxisAngle(up, r0() * 6.28));
-      const k = i === 0 ? 1.35 : 0.8 + r0() * 0.4;
+      const k = i === 0 ? 2.7 : 1.8 + r0() * 0.55;
       m4.compose(p, qi, s3.set(k, k, k));
       houseMesh.setMatrixAt(ni * HOUSES + i, m4);
       roofMesh.setMatrixAt(ni * HOUSES + i, m4);
+      roofMesh.setColorAt(ni * HOUSES + i, roofColors[ni]);
     }
-    const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.55 }));
+    landmark(ni, pos0, normal, qn);
+    const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.32 }));
     glow.position.copy(pos0.clone().addScaledVector(normal, 0.012));
-    glow.scale.setScalar(0.09);
+    glow.scale.setScalar(0.052);
     glows.push(glow);
     root.add(glow);
     // 選んだ集落の輪
     const ring = new THREE.Mesh(
-      new THREE.RingGeometry(0.036, 0.041, 48).rotateX(-Math.PI / 2),
+      new THREE.RingGeometry(0.064, 0.068, 48).rotateX(-Math.PI / 2),
       new THREE.MeshBasicMaterial({ color: '#3ef08c', transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false }),
     );
     ring.position.copy(pos0.clone().addScaledVector(normal, 0.002));
     ring.quaternion.copy(qn);
     rings.push(ring);
     root.add(ring);
+    const eventRing = new THREE.Mesh(
+      new THREE.RingGeometry(0.073, 0.078, 40).rotateX(-Math.PI / 2),
+      new THREE.MeshBasicMaterial({ color: '#ffc976', transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending }),
+    );
+    eventRing.position.copy(pos0.clone().addScaledVector(normal, 0.006));
+    eventRing.quaternion.copy(qn);
+    eventRing.visible = false;
+    eventRings.push(eventRing);
+    root.add(eventRing);
   });
-  root.add(houseMesh, roofMesh, crates);
+  roofMesh.instanceColor!.needsUpdate = true;
+  bases.instanceColor!.needsUpdate = true;
+  flags.instanceColor!.needsUpdate = true;
+  root.add(bases, poles, flags, houseMesh, roofMesh, crates);
+  // 箱は在庫が変わった時だけ行列を差し替える。毎フレーム 120 個の Vector3 を作らない。
+  const crateMatrices = frames.map((f) => Array.from({ length: CRATES }, (_, i) => {
+    const layer = Math.floor(i / 6);
+    const k = i % 6;
+    const p = f.pos.clone()
+      .addScaledVector(f.east, 0.034 + (k % 3) * 0.0082)
+      .addScaledVector(f.north, -0.008 + Math.floor(k / 3) * 0.0082)
+      .addScaledVector(f.normal, layer * 0.0076);
+    return new THREE.Matrix4().compose(p, f.q, new THREE.Vector3(1, 1, 1));
+  }));
+  const hiddenCrate = new THREE.Matrix4().makeScale(0, 0, 0);
+  const visibleCrates = NATIONS.map(() => -1);
 
   // ---- 道：大円の弧を、距離に応じて浮かせる ----
   const arcPoint = (a: THREE.Vector3, b: THREE.Vector3, s: number, lift: number) => {
@@ -296,7 +493,7 @@ export function buildGlobe(opts: { rich: boolean }) {
     const pts = Array.from({ length: 97 }, (_, i) => arcPoint(a, b, i / 96, lift));
     return { a, b, lift, pts };
   });
-  const roadMat = new THREE.LineBasicMaterial({ color: '#e2c48f', transparent: true, opacity: 0.42, depthWrite: false });
+  const roadMat = new THREE.LineBasicMaterial({ color: '#e2c48f', transparent: true, opacity: 0.3, depthWrite: false });
   const roadHot = new THREE.LineBasicMaterial({ color: '#ffd9a0', transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending });
   const roads = arcs.map((arc) => {
     const g = new THREE.BufferGeometry().setFromPoints(arc.pts);
@@ -310,13 +507,13 @@ export function buildGlobe(opts: { rich: boolean }) {
   });
 
   // ---- 荷：箱と灯り。道の上を、時刻どおりに動く ----
-  const cargoGeo = new THREE.BoxGeometry(0.011, 0.011, 0.016); // 長い辺が進む向き（lookAt の +z）
+  const cargoGeo = new THREE.BoxGeometry(0.014, 0.014, 0.021); // 長い辺が進む向き（lookAt の +z）
   const cargoMat = new THREE.MeshStandardMaterial({ color: '#e7b768', roughness: 0.6, flatShading: true, emissive: '#ffb25c', emissiveIntensity: 0.55 });
   const cargo = GLOBE_ROUTES.map(() => {
     const g = new THREE.Group();
     const box = new THREE.Mesh(cargoGeo, cargoMat);
     const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.8 }));
-    glow.scale.setScalar(0.06);
+    glow.scale.setScalar(0.056);
     g.add(box, glow);
     g.visible = false;
     root.add(g);
@@ -326,27 +523,43 @@ export function buildGlobe(opts: { rich: boolean }) {
   /** 状態に合わせる。selected は選んだ集落（なければ -1）、t は時刻（灯りのゆらぎに使う） */
   function update(st: GlobeState, selected: number, t: number) {
     // 在庫の箱：1 箱 5 単位を、集落の脇に積む
+    let cratesChanged = false;
     NATIONS.forEach((_, ni) => {
-      const f = frames[ni];
       const n = Math.min(CRATES, Math.round(st.stocks[ni] / 5));
-      for (let i = 0; i < CRATES; i++) {
-        if (i < n) {
-          const layer = Math.floor(i / 6);
-          const k = i % 6;
-          const p = f.pos
-            .clone()
-            .addScaledVector(f.east, 0.034 + (k % 3) * 0.0082)
-            .addScaledVector(f.north, -0.008 + Math.floor(k / 3) * 0.0082)
-            .addScaledVector(f.normal, layer * 0.0076);
-          m4.compose(p, f.q, s3.set(1, 1, 1));
-        } else m4.makeScale(0, 0, 0);
-        crates.setMatrixAt(ni * CRATES + i, m4);
+      if (n !== visibleCrates[ni]) {
+        for (let i = 0; i < CRATES; i++)
+          crates.setMatrixAt(ni * CRATES + i, i < n ? crateMatrices[ni][i] : hiddenCrate);
+        visibleCrates[ni] = n;
+        cratesChanged = true;
       }
       const sel = ni === selected;
-      (rings[ni].material as THREE.MeshBasicMaterial).opacity = sel ? 0.55 + 0.25 * Math.sin(t * 3) : 0;
-      (glows[ni].material as THREE.SpriteMaterial).opacity = sel ? 0.85 : 0.5;
+      (rings[ni].material as THREE.MeshBasicMaterial).opacity = sel ? 0.32 + 0.1 * Math.sin(t * 3) : 0;
+      (glows[ni].material as THREE.SpriteMaterial).opacity = sel ? 0.45 : 0.25;
+      glows[ni].scale.setScalar(sel ? 0.06 : 0.052);
     });
-    crates.instanceMatrix.needsUpdate = true;
+    if (cratesChanged) crates.instanceMatrix.needsUpdate = true;
+    windmillRotors.forEach((rotor) => { rotor.rotation.z = t * 0.45; });
+
+    // 出発と到着は、globeState の時刻から作られたイベントだけで光らせる。
+    const eventAge = NATIONS.map(() => Infinity);
+    const eventKind: ('depart' | 'arrive')[] = NATIONS.map(() => 'depart');
+    for (const e of st.events) {
+      const endpoint = e.kind === 'depart' ? GLOBE_ROUTES[e.route].from : GLOBE_ROUTES[e.route].to;
+      if (e.age < eventAge[endpoint]) {
+        eventAge[endpoint] = e.age;
+        eventKind[endpoint] = e.kind;
+      }
+    }
+    eventRings.forEach((ring, ni) => {
+      const age = eventAge[ni];
+      ring.visible = age < GLOBE_EVENT_SPAN;
+      if (!ring.visible) return;
+      ring.scale.setScalar(0.82 + 0.65 * age / GLOBE_EVENT_SPAN);
+      const mat = ring.material as THREE.MeshBasicMaterial;
+      mat.color.set(eventKind[ni] === 'depart' ? '#ffc976' : '#67e4b2');
+      mat.opacity = 0.7 * (1 - age / GLOBE_EVENT_SPAN);
+      (glows[ni].material as THREE.SpriteMaterial).opacity = 0.65;
+    });
 
     // 荷
     cargo.forEach((g) => (g.visible = false));
