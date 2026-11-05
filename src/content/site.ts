@@ -114,7 +114,6 @@ export type Content = {
     heading: string;
     oneLiner: string;
     body: string[];
-    status: string;
     facts: Row[];
     links: Link[];
     shot: { alt: string; caption: string };
@@ -143,7 +142,7 @@ export type Content = {
   /** 会社の取り組み（WHAT WE DO）。項目の名前は日英とも英語 */
   what: { label: string; heading: string; lead: string; body: string; items: { no: string; name: string; text: string }[] };
   company: { label: string; heading: string; body: string[]; rowsLabel: string; rows: Row[] };
-  contact: { label: string; heading: string; body: string; note: string; links: Link[] };
+  contact: { label: string; heading: string; body: string; links: Link[] };
   footer: { top: string };
 };
 
@@ -225,13 +224,13 @@ const ja: Content = {
       '村を育て、資源を運び、国の未来を考える。プレイヤーとAIエージェントは、同じ世界の中でそれぞれの目的を持ち、交易し、協力し、ときには争います。',
       'ある村の生産が別の村を支え、一つの取引が国を越える物流につながる。人間とAIの一つひとつの選択が積み重なり、世界の歴史と経済を形づくっていきます。',
     ],
-    status: '開発中 · 一般公開前',
     // 出典: wylls/README.md（2026-10-26 の状態）, research/TECH_LANDSCAPE_2026.md
     // 本文はゲームの内容の説明。いまどこまで動いているかは、ここに分けて書く
     facts: [
       { label: '状態', value: '開発中・一般公開前。村・6 つの国・荷の輸送・襲撃・AI の住人は、ローカルのテスト用チェーンで動作を確認しています。市場などの交易の仕組みは、まだ設計の段階です' },
-      { label: '基盤', value: 'Solana' },
-      { label: 'トークン', value: '独自トークンの発行を前提にしていません' },
+      { label: 'ブロックチェーン', value: 'Solana' },
+      // 出典: wylls/README.md（Rust のワークスペース、frontier-wasm、Gemma 4 を llama.cpp で、drand の時間で開く封）
+      { label: '技術', value: 'Rust（チェーン上のプログラムとルール）、WebAssembly（ブラウザでのルールの再計算）、ローカルで動くAIモデル（Gemma 4）、drand（時間がたつと開く封）' },
     ],
     links: [
       { label: '紹介サイト', href: site.wylls, note: 'wylls-site.vercel.app' },
@@ -290,7 +289,7 @@ const ja: Content = {
       // 原文: "Make the world work, for 100% of humanity, in the shortest possible time, through spontaneous cooperation, without ecological offense or the disadvantage of anyone."
       // 旧訳の「100%世界をうまく利用できる」は原文の「人類の 100% のために世界が機能する」とずれていたので訳し直した
       text: '生態系を損なうことなく、誰の不利益にもならず、自発的な協力によって、できるかぎり短い時間で、世界を人類の100%のために機能させる。',
-      source: 'R・バックミンスター・フラー「ワールド・ゲーム」の目的（雪風訳）',
+      source: 'R・バックミンスター・フラー「ワールド・ゲーム」',
     },
     // 球体の模型の文言。模型の中（集落名・数の札）は英語で、site.ts の globeUi
     globe: {
@@ -326,7 +325,7 @@ const ja: Content = {
     rowsLabel: '会社概要',
     rows: [
       { label: '社名', value: '株式会社雪風（Yukikaze Inc.）' },
-      { label: '所在地', value: '京都府京都市' },
+      { label: '所在地', value: 'Kyoto, Japan' },
       { label: '代表', value: '竹原 大智' },
       // 事業・肩書きは持ち主の回答（2026-11-04）：事業はゲーム開発だけ、肩書きは「代表」
       { label: '事業', value: 'AIとブロックチェーンを活用したゲームの開発' },
@@ -336,7 +335,6 @@ const ja: Content = {
     label: '08 — 連絡',
     heading: 'Contact',
     body: '協業、取材、投資、開発についてのご相談は、メールでお送りください。',
-    note: 'お問い合わせフォームはありません。',
     links: [
       { label: 'X', href: site.x, note: '@r0ze_____' },
       { label: 'GitHub', href: site.github, note: 'r0ze998' },
@@ -420,11 +418,10 @@ const en: Content = {
       'Grow your village, move resources, and think about your nation’s future. Players and AI agents each pursue their own goals in the same world: trading, cooperating and, at times, fighting.',
       'One village’s output supports another, and a single trade turns into logistics that cross national borders. Choice by choice, humans and AI shape the world’s history and its economy.',
     ],
-    status: 'In development · not yet public',
     facts: [
       { label: 'Status', value: 'In development, not yet public. Villages, six nations, moving goods, raids and AI citizens run on local test chains. Markets and other trading systems are still at the design stage.' },
-      { label: 'Chain', value: 'Solana' },
-      { label: 'Token', value: 'Not designed around a token of its own' },
+      { label: 'Blockchain', value: 'Solana' },
+      { label: 'Technology', value: 'Rust (on-chain program and rules), WebAssembly (re-checking the rules in the browser), a locally run AI model (Gemma 4), drand (seals that open after a set time)' },
     ],
     links: [
       { label: 'Project site', href: site.wylls, note: 'wylls-site.vercel.app' },
@@ -478,7 +475,7 @@ const en: Content = {
     ],
     quote: {
       text: 'Make the world work, for 100% of humanity, in the shortest possible time, through spontaneous cooperation, without ecological offense or the disadvantage of anyone.',
-      source: 'R. Buckminster Fuller, on the aim of the World Game',
+      source: 'R. Buckminster Fuller, World Game',
     },
     globe: {
       label: 'One world, six settlements',
@@ -512,7 +509,7 @@ const en: Content = {
     rowsLabel: 'Company details',
     rows: [
       { label: 'Company', value: 'Yukikaze Inc. (株式会社雪風)' },
-      { label: 'Location', value: 'Kyoto City, Kyoto, Japan' },
+      { label: 'Location', value: 'Kyoto, Japan' },
       { label: 'Representative', value: 'Daichi Takehara' },
       { label: 'Business', value: 'Games built with AI and blockchain' },
     ],
@@ -521,7 +518,6 @@ const en: Content = {
     label: '08 — Contact',
     heading: 'Contact',
     body: 'For partnerships, press, investment or development, please write to us by email.',
-    note: 'There is no contact form.',
     links: [
       { label: 'X', href: site.x, note: '@r0ze_____' },
       { label: 'GitHub', href: site.github, note: 'r0ze998' },

@@ -192,10 +192,6 @@ export default function HomePage({ lang }: { lang: Lang }) {
               <SectionLabel>{c.wylls.label}</SectionLabel>
               <div className="flex flex-wrap items-baseline gap-x-5 gap-y-2">
                 <H2 id="wylls-heading">{c.wylls.heading}</H2>
-                <p className="label flex items-center gap-2 !text-ai-ink">
-                  <span aria-hidden="true" className="inline-block h-1.5 w-1.5 rounded-full bg-ai" />
-                  {c.wylls.status}
-                </p>
               </div>
               <p className="serif mt-5 text-[1.125rem] leading-[1.75] md:text-[1.25rem]">{c.wylls.oneLiner}</p>
               <Paras items={c.wylls.body} className="mt-4 max-w-[42rem]" />
@@ -231,7 +227,7 @@ export default function HomePage({ lang }: { lang: Lang }) {
               <div className="mt-10 grid gap-8 md:grid-cols-2">
                 <dl>
                   {c.wylls.facts.map(({ label, value }) => (
-                    <div key={label} className="grid grid-cols-[5.5rem_1fr] gap-3 border-t border-rule py-3 text-[0.875rem]">
+                    <div key={label} className="grid grid-cols-[7.5rem_1fr] gap-3 border-t border-rule py-3 text-[0.875rem]">
                       <dt className="label pt-[0.15rem]">{label}</dt>
                       <dd className="text-ink-2">{value}</dd>
                     </div>
@@ -372,7 +368,6 @@ export default function HomePage({ lang }: { lang: Lang }) {
               >
                 {site.email}
               </a>
-              <p className="mt-2 text-[0.75rem] text-ink-3">{c.contact.note}</p>
               <ul className="mt-8">
                 {c.contact.links.map(({ label, href, note }) => (
                   <li key={href}>
