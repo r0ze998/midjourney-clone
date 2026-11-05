@@ -1,9 +1,23 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 
-// 荷車の短い映像。画面に入ったときだけ再生し、出たら止める。動きを減らす設定では自動で再生しない。
-// 映像が読めなくても、静止画（poster）とキャプションだけで内容が伝わるようにする。
-export default function CartVideo({ caption, play, pause, bare = false }: { caption: string; play: string; pause: string; bare?: boolean }) {
+// 短い繰り返しの映像。画面に入ったときだけ再生し、出たら止める。動きを減らす設定では自動で再生しない。
+// 映像が読めなくても、静止画（poster）で内容が伝わるようにする。
+export default function CartVideo({
+  caption,
+  play,
+  pause,
+  bare = false,
+  src = '/media/cart.mp4',
+  poster = '/media/cart-poster.webp',
+}: {
+  caption: string;
+  play: string;
+  pause: string;
+  bare?: boolean;
+  src?: string;
+  poster?: string;
+}) {
   const ref = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
   const [userPaused, setUserPaused] = useState(false);
@@ -31,12 +45,14 @@ export default function CartVideo({ caption, play, pause, bare = false }: { capt
           loop
           playsInline
           preload="none"
-          poster="/media/cart-poster.webp"
+          poster={poster}
           onPlay={() => setPlaying(true)}
           onPause={() => setPlaying(false)}
           aria-label={caption}
         >
-          <source src="/media/cart.mp4" type="video/mp4" />
+          {/* H.264 を先に（Safari・Chrome）。H.264 を再生できないブラウザは WebM（VP9）へ */}
+          <source src={src} type="video/mp4" />
+          <source src={src.replace(/\.mp4$/, '.webm')} type="video/webm" />
         </video>
         <button
           type="button"

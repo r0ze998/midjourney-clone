@@ -61,19 +61,12 @@ export const modelUi = {
   },
 } as const;
 
-/** Wylls の欄の画面の窓（英語で固定。位置は src/assets/wylls-village.jpg 1440×900 に対する %） */
-export const screenUi = {
-  shot: {
-    title: 'Wylls — dev client',
-    meta: 'Sample world · fixed clock',
-    tags: [
-      { x: 23, y: 3.5, text: 'Resources', dir: 'down' },
-      { x: 47, y: 49, text: 'Town · Lamar', dir: 'down', mobile: true },
-      { x: 50, y: 92, text: 'Town actions', dir: 'up' },
-    ],
-  },
-  video: { title: 'Model — ride a cart', meta: 'Exported from this site' },
-} as const;
+/** Wylls の欄に散らす映像の窓（窓の帯の文字は英語で固定）。持ち主の映像 2 本（2026-11-05）と、模型から書き出した荷車の映像 */
+export const filmUi = [
+  { key: 'storm', src: '/media/storm-a.mp4', poster: '/media/storm-a-poster.webp', title: 'Wylls — Storm', accent: 'signal' },
+  { key: 'march', src: '/media/storm-b.mp4', poster: '/media/storm-b-poster.webp', title: 'Wylls — March', accent: 'signal' },
+  { key: 'cart', src: '/media/cart.mp4', poster: '/media/cart-poster.webp', title: 'Model — Ride a cart', accent: 'ai' },
+] as const;
 
 /** 球体の模型の中の表示（英語で固定） */
 export const globeUi = {
@@ -120,8 +113,9 @@ export type Content = {
     /** 使っている技術。名前とタグは日英とも英語 */
     tech: { no: string; name: string; text: string; tags: string }[];
     links: Link[];
-    shot: { alt: string; caption: string };
-    video: { caption: string; play: string; pause: string };
+    /** 映像の窓の読み上げ用の説明（filmUi と同じ順） */
+    films: { storm: string; march: string; cart: string };
+    video: { play: string; pause: string };
     pastLabel: string;
     past: { name: string; meta: string; desc: string; href: string }[];
   };
@@ -270,13 +264,13 @@ const ja: Content = {
       { label: 'ピッチ映像', href: site.wyllsPitch, note: 'YouTube' },
       { label: 'ソースコード', href: site.wyllsRepo, note: 'GitHub' },
     ],
-    // 出典: wylls/docs/design/uplift/shots/index.html（見本の世界：固定の時計・同じ乱数）
-    shot: {
-      alt: 'Wyllsの開発中の画面。ヘックスの地図の中央に町ラマール、まわりに森と湖。上に資源の数、下に町への操作の並び。',
-      caption: '開発中のクライアントを、見本の世界（固定の時計・同じ乱数）で撮影した画面です。実際のシーズンではありません。',
+    // 映像の窓の読み上げ用（画面には出さない）
+    films: {
+      storm: 'Wyllsの映像。嵐の夜、雷が落ちる山と、ヘックスの地図の上の町と湖。',
+      march: 'Wyllsの映像。雨のヘックスの地図と、ぬかるんだ道を行進する兵の列。',
+      cart: '荷車がヘックスの地図の道を進む映像。サイトの模型から書き出したもの。',
     },
     video: {
-      caption: '荷車が道を進む映像。サイトの模型から書き出したもので、ゲームの画面ではありません。',
       play: '再生',
       pause: '一時停止',
     },
@@ -492,12 +486,12 @@ const en: Content = {
       { label: 'Pitch video', href: site.wyllsPitch, note: 'YouTube' },
       { label: 'Source code', href: site.wyllsRepo, note: 'GitHub' },
     ],
-    shot: {
-      alt: 'The Wylls client in development: the town of Lamar at the centre of a hex map, with forest and lakes around it, resource counts at the top and town actions at the bottom.',
-      caption: 'The client in development, captured in a sample world (fixed clock, fixed seed). Not a live season.',
+    films: {
+      storm: 'A Wylls film: a stormy night, lightning striking a mountain above a town and lakes on a hex map.',
+      march: 'A Wylls film: a hex map in the rain, and a column of soldiers marching along a muddy road.',
+      cart: 'A cart moving along a road on the hex map, exported from this site’s model.',
     },
     video: {
-      caption: 'A cart on the road, exported from this site’s model. Not a game screen.',
       play: 'Play',
       pause: 'Pause',
     },

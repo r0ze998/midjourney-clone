@@ -4,11 +4,9 @@ import WorldStage from './WorldStage';
 import Rain from './Rain';
 import ModelControls, { ModelConsole, ModelReadout, ScrubArea } from './ModelControls';
 import ExternalLink from './ExternalLink';
-import CartVideo from './CartVideo';
-import ScreenFrame from './ScreenFrame';
+import FilmCollage from './FilmCollage';
 import WorldGlobe from './WorldGlobe';
-import wyllsShot from '../assets/wylls-village.jpg';
-import { content, screenUi, site, type Lang } from '../content/site';
+import { content, site, type Lang } from '../content/site';
 import { organizationJsonLd } from '../lib/metadata';
 
 // 1 ページの構成。模型（WorldStage）は画面に固定した背景で、各セクションの data-scene に合わせて場面が移る。
@@ -196,28 +194,8 @@ export default function HomePage({ lang }: { lang: Lang }) {
               <p className="serif mt-5 text-[1.125rem] leading-[1.75] md:text-[1.25rem]">{c.wylls.oneLiner}</p>
               <Paras items={c.wylls.body} className="mt-4 max-w-[42rem]" />
 
-              {/* 実際の画面と、模型から書き出した映像。どちらも模型と同じ「窓」に収め、映像は右下に重ねる */}
-              <figure className="mt-8">
-                <div className="relative lg:pb-[16%] lg:pr-[12%]">
-                  <div className="tilt-in">
-                    <ScreenFrame title={screenUi.shot.title} meta={screenUi.shot.meta} tags={[...screenUi.shot.tags]}>
-                      <Image
-                        src={wyllsShot}
-                        alt={c.wylls.shot.alt}
-                        placeholder="blur"
-                        sizes="(min-width: 1024px) 860px, 100vw"
-                        quality={78}
-                        className="block h-auto w-full brightness-[0.88] saturate-[0.9]"
-                      />
-                    </ScreenFrame>
-                  </div>
-                  <div className="tilt-in tilt-in-late mt-4 lg:absolute lg:bottom-0 lg:right-0 lg:mt-0 lg:w-[42%] lg:shadow-[0_24px_60px_-12px_rgba(0,0,0,0.9)]">
-                    <ScreenFrame title={screenUi.video.title} meta={screenUi.video.meta} accent="ai">
-                      <CartVideo bare caption={c.wylls.video.caption} play={c.wylls.video.play} pause={c.wylls.video.pause} />
-                    </ScreenFrame>
-                  </div>
-                </div>
-              </figure>
+              {/* 映像の窓を散らして置く（持ち主の映像 2 本と、模型の荷車） */}
+              <FilmCollage labels={c.wylls.films} play={c.wylls.video.play} pause={c.wylls.video.pause} />
 
               <p className="mt-10 max-w-[46rem] text-[0.9375rem] leading-[2] text-ink-2">{c.wylls.about}</p>
 

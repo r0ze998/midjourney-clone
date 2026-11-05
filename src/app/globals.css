@@ -179,26 +179,45 @@
   }
 }
 
-/* Wylls の欄の窓：スクロールで画面に入るとき、少し傾いた状態から正面に起き上がる（デスクトップ・対応ブラウザのみ） */
-@media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
-  @supports (animation-timeline: view()) {
-    .tilt-in {
-      transform-origin: 50% 100%;
-      animation: tilt-in linear both;
-      animation-timeline: view();
-      animation-range: entry 0% cover 38%;
-    }
-    .tilt-in-late {
-      animation-range: entry 10% cover 46%;
-    }
+/* Wylls の欄の映像の窓：散らして置き、画面に入ると順に「ポン」と現れる */
+.film-pop {
+  transform: rotate(var(--rot, 0deg));
+  transition: transform 0.35s var(--ease-out);
+}
+.film-pop:hover,
+.film-pop:focus-within {
+  transform: rotate(0deg) scale(1.025);
+  z-index: 10 !important;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .film-collage[data-shown='0'] .film-pop {
+    opacity: 0;
+    transform: translateY(28px) scale(0.86) rotate(calc(var(--rot, 0deg) * 3));
+  }
+  .film-collage[data-shown='1'] .film-pop {
+    animation: film-pop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) var(--delay, 0ms) backwards;
+  }
+  /* 現れたあとは、ゆっくり漂う */
+  .film-collage[data-shown='1'] .film-float {
+    animation: film-float 7s ease-in-out calc(var(--delay, 0ms) + 0.7s) infinite alternate;
   }
 }
-@keyframes tilt-in {
+@keyframes film-pop {
   from {
-    transform: perspective(1600px) rotateX(16deg) rotateY(-6deg) translateY(40px) scale(0.95);
+    opacity: 0;
+    transform: translateY(28px) scale(0.86) rotate(calc(var(--rot, 0deg) * 3));
   }
   to {
-    transform: none;
+    opacity: 1;
+    transform: rotate(var(--rot, 0deg));
+  }
+}
+@keyframes film-float {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-8px);
   }
 }
 
