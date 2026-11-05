@@ -85,7 +85,9 @@ export type Content = {
   hero: {
     kicker: string;
     title: string;
+    /** 見出しの下の一文（日本語の見出し） */
     lead: string;
+    body: string[];
   };
   model: {
     label: string;
@@ -93,15 +95,14 @@ export type Content = {
     replay: string;
     captions: Record<'overview' | 'logistics' | 'ride' | 'defense' | 'ai' | 'verify', string>;
   };
-  why: {
-    label: string;
-    heading: string;
-    beats: { title: string; body: string }[];
-  };
+  /** 見出しは英語。本文は段落の並び。場面ごとに分けて置く（parts の 1 つが模型の 1 場面） */
+  why: { label: string; heading: string; parts: string[][] };
+  humans: { label: string; heading: string; body: string[] };
   wylls: {
     label: string;
     heading: string;
     oneLiner: string;
+    body: string[];
     status: string;
     facts: Row[];
     links: Link[];
@@ -110,10 +111,12 @@ export type Content = {
     pastLabel: string;
     past: { name: string; meta: string; desc: string; href: string }[];
   };
+  /** 構想（まだ実装していない方向）。ラベルで構想だと示す */
+  build: { label: string; heading: string; body: string[] };
   origin: {
     label: string;
     heading: string;
-    body: string;
+    body: string[];
     quote: { text: string; source: string };
     globe: {
       label: string;
@@ -125,7 +128,7 @@ export type Content = {
     };
   };
   log: { label: string; heading: string; note: string; empty: string };
-  company: { label: string; heading: string; rows: Row[] };
+  company: { label: string; heading: string; body: string[]; rowsLabel: string; rows: Row[] };
   contact: { label: string; heading: string; body: string; note: string; links: Link[] };
   footer: { top: string };
 };
@@ -134,7 +137,7 @@ const ja: Content = {
   meta: {
     title: '株式会社雪風 | Yukikaze Inc.',
     description:
-      '株式会社雪風は、人間とAIが同じルールで生きる世界を、ゲームで先に試す京都の会社です。現在は戦略ゲーム「Wylls」をSolanaで開発しています。',
+      '株式会社雪風は、京都を拠点に、ブロックチェーンを用いたプロダクトを開発する会社です。経済とインターネットを再構築し、誰もが参加できる新しい経済のあり方を、ゲームから探っています。現在は戦略ゲーム「Wylls」を開発しています。',
     ogAlt: '株式会社雪風 — Make the world work.',
   },
   name: '株式会社雪風',
@@ -143,17 +146,24 @@ const ja: Content = {
   externalHint: '（外部サイト）',
   langSwitch: { label: 'EN', href: '/en', hrefLang: 'en' },
   nav: [
-    { label: 'なぜゲームか', href: '#why' },
+    { label: 'Why games', href: '#why' },
+    { label: 'Humans & AI', href: '#humans' },
     { label: 'Wylls', href: '#wylls' },
-    { label: '社名', href: '#origin' },
-    { label: '会社', href: '#company' },
+    { label: 'World Game', href: '#origin' },
+    { label: 'Yukikaze', href: '#company' },
   ],
   hero: {
     kicker: 'KYOTO — GAME STUDIO',
     // 見出しは R・バックミンスター・フラーの言葉（「ワールド・ゲーム」の目的の冒頭）。出典は社名の項の引用に。
     // 見出しには出典を付けない（持ち主の指示、2026-11-04）
     title: 'Make the world work.',
-    lead: '人間とAIが同じルールで生きる世界を、ゲームで先に試す会社です。',
+    // 本文は持ち主の文章（2026-11-05）
+    lead: '経済とインターネットを、再構築する。',
+    body: [
+      '雪風が目指すのは、国籍や資本によって参加の可能性が閉ざされず、一人ひとりが自分の意思で選び、協力できる経済です。',
+      'ブロックチェーンを、価値を記録するためだけでなく、ルールを共有し、行動の結果を確かめられる仕組みとして使う。',
+      '私たちは、誰もが参加できる新しい経済のあり方を、ゲームから探っています。',
+    ],
   },
   model: {
     label: 'Wylls の世界の模型',
@@ -171,30 +181,41 @@ const ja: Content = {
   },
   why: {
     label: '01 — なぜゲームか',
-    heading: 'なぜ、ゲームなのか。',
-    beats: [
-      {
-        title: 'AIエージェントが、経済に入ってくる。',
-        body: 'AIは、人に代わって取引し、交渉し、物を動かす主体になりつつあります。人とAIが同じ市場に立つとき、ルールがどう働くか。社会で試す前に確かめておきたい問いです。',
-      },
-      {
-        title: 'ゲームは、社会の先行指標になりうる。',
-        body: 'ゲームなら、人とAIを同じルールの中に置き、何が起きるかを小さく、速く、何度でも観察できます。ゲームの中で起きることは、これからの社会で起きることを先に映す。私たちはそう考えています。',
-      },
-      {
-        title: 'ルールと状態を、チェーンに置く。',
-        body: 'ルールと世界の状態を公開の台帳に置けば、運営を信じなくても、誰が何をしたかを誰でも確かめられます。人もAIも、同じ条件で参加できます。',
-      },
+    heading: 'Why games',
+    parts: [
+      [
+        'ゲームの中には、生産、交換、希少性、協力、競争といった、経済の基本的な働きがあります。',
+        'ルールが変われば、人々の行動も変わる。一人の選択がほかの誰かに影響し、その積み重ねが世界全体を変えていきます。',
+      ],
+      [
+        '私たちはゲームを、人々が実際に意思決定し、その結果を体験できる場所だと考えています。',
+        'どんな条件なら、知らない相手とも協力できるのか。どのようなルールがあれば、それぞれが自分の目的を追いながら、互いに価値を生み出せるのか。',
+        'その問いを言葉だけで終わらせず、動く世界としてつくる。そこで生まれる選択や関係を、これからの経済を考える手がかりにしていきます。',
+      ],
+    ],
+  },
+  humans: {
+    label: '02 — 人間とAI',
+    heading: 'Humans & AI',
+    body: [
+      'AIが情報を集めるだけでなく、自ら判断し、取引し、ほかの誰かと協力するようになったとき、経済はどう変わるのか。',
+      '誰に何を任せるのか。どのルールを信頼し、何を自分で確かめるのか。人間とAIが同じ世界の参加者になることで、新しい可能性と、新しい問いが生まれます。',
+      '雪風は、人間とAIがともに行動し、ときには競い、ときには協力する世界をつくります。その中で、互いに関係を築き、価値を生み出すための仕組みを探っていきます。',
     ],
   },
   wylls: {
-    label: '02 — 作っているもの',
+    label: '03 — 作っているもの',
     heading: 'Wylls',
-    oneLiner: '人間とAIが、同じ世界で文明を形づくる戦略ゲーム。',
+    oneLiner: '人間とAIが、ひとつの世界で文明を築く戦略ゲーム。',
+    body: [
+      '村を育て、資源を運び、国の未来を考える。プレイヤーとAIエージェントは、同じ世界の中でそれぞれの目的を持ち、交易し、協力し、ときには争います。',
+      'ある村の生産が別の村を支え、一つの取引が国を越える物流につながる。人間とAIの一つひとつの選択が積み重なり、世界の歴史と経済を形づくっていきます。',
+    ],
     status: '開発中 · 一般公開前',
-    // 出典: wylls/README.md, research/TECH_LANDSCAPE_2026.md
+    // 出典: wylls/README.md（2026-10-26 の状態）, research/TECH_LANDSCAPE_2026.md
+    // 本文はゲームの内容の説明。いまどこまで動いているかは、ここに分けて書く
     facts: [
-      { label: '状態', value: '開発中。ローカルのテスト用チェーンで動作を確認しています' },
+      { label: '状態', value: '開発中・一般公開前。村・6 つの国・荷の輸送・襲撃・AI の住人は、ローカルのテスト用チェーンで動作を確認しています。市場などの交易の仕組みは、まだ設計の段階です' },
       { label: '基盤', value: 'Solana' },
       { label: 'トークン', value: '独自トークンの発行を前提にしていません' },
     ],
@@ -230,10 +251,27 @@ const ja: Content = {
       },
     ],
   },
+  build: {
+    label: '04 — 構想',
+    heading: 'A world to build on',
+    // 構想。組み合わせの土台は設計の段階（wylls/docs/design/redesign/27-design-v1.ja.md の 1 章）
+    body: [
+      'Wyllsが目指すのは、運営が用意した遊びを体験するだけの世界ではありません。',
+      'ブロックチェーン上でルールや状態を共有することで、プレイヤーや開発者、AIエージェントが、同じ世界を土台に新しい仕組みを組み合わせられるようにする。',
+      'たとえば、村どうしの取引を支える仕組みや、資源の流れを読み解くツール、独自の判断で行動するAI。誰かがつくったものを、別の誰かが使い、組み合わせ、さらに発展させていく。',
+      '世界を動かすのは、開発者だけではない。参加者それぞれの創造が、世界の可能性を広げていく。Wyllsは、そんな開かれた世界を目指しています。',
+    ],
+  },
   origin: {
-    label: '03 — 社名',
-    heading: '社名と、ワールド・ゲーム。',
-    body: '陽炎型駆逐艦のなかで唯一、終戦まで残った「雪風」から名づけました。戦争を模したゲームではなく、全員が参加し、誰も損をしない道を探るゲームを。フラーが「ワールド・ゲーム」と呼んだこの考え方を、今の技術で試すことが雪風の出発点です。',
+    label: '05 — 思想',
+    heading: 'World Game',
+    body: [
+      '雪風の思想の出発点には、バックミンスター・フラーの「ワールド・ゲーム」があります。',
+      '誰かが勝つために、別の誰かが負けなければならない。そうした前提を問い直し、世界をすべての人のために機能させるには、何が必要なのか。',
+      '私たちは、その問いを今の技術で引き受けたいと考えています。',
+      'それぞれが異なる意思や目的を持ちながら、協力できる余地を増やす。競争や対立も含めた現実を見つめながら、より多くの人が参加できる仕組みをつくる。',
+      'ゲームから始めて、経済とインターネットの新しい選択肢へ。雪風は、その可能性を探り続けます。',
+    ],
     quote: {
       // 原文: "Make the world work, for 100% of humanity, in the shortest possible time, through spontaneous cooperation, without ecological offense or the disadvantage of anyone."
       // 旧訳の「100%世界をうまく利用できる」は原文の「人類の 100% のために世界が機能する」とずれていたので訳し直した
@@ -251,14 +289,19 @@ const ja: Content = {
     },
   },
   log: {
-    label: '04 — 開発ログ',
-    heading: '開発ログ',
+    label: '06 — 開発ログ',
+    heading: 'Dev log',
     note: 'Wylls の公開リポジトリ（GitHub）から自動で取り込んでいます。',
     empty: '',
   },
   company: {
-    label: '05 — 会社',
-    heading: '会社概要',
+    label: '07 — 会社',
+    heading: 'Yukikaze',
+    body: [
+      '株式会社雪風は、京都を拠点に、ブロックチェーンを用いたプロダクトを開発する会社です。',
+      '経済とインターネットを再構築し、より多くの人が自分の意思で参加できる経済を目指しています。現在はWyllsを中心に、人間とAIが共有する世界と、そこで生まれるルールや関係の開発に取り組んでいます。',
+    ],
+    rowsLabel: '会社概要',
     rows: [
       { label: '社名', value: '株式会社雪風（Yukikaze Inc.）' },
       { label: '所在地', value: '京都府京都市' },
@@ -268,8 +311,8 @@ const ja: Content = {
     ],
   },
   contact: {
-    label: '06 — 連絡',
-    heading: 'ご連絡',
+    label: '08 — 連絡',
+    heading: 'Contact',
     body: '協業、取材、投資、開発についてのご相談は、メールでお送りください。',
     note: 'お問い合わせフォームはありません。',
     links: [
@@ -284,7 +327,7 @@ const en: Content = {
   meta: {
     title: 'Yukikaze Inc. | 株式会社雪風',
     description:
-      'Yukikaze Inc. is a Kyoto studio that tries out, in games, a world where humans and AI live by the same rules. We are building Wylls, a strategy game on Solana.',
+      'Yukikaze Inc. is a Kyoto-based company building products with blockchain technology. We are rebuilding the economy and the internet, exploring through games a new kind of economy anyone can join. Our current project is Wylls, a strategy game.',
     ogAlt: 'Yukikaze Inc. — Make the world work.',
   },
   name: 'Yukikaze Inc.',
@@ -294,14 +337,20 @@ const en: Content = {
   langSwitch: { label: 'JA', href: '/', hrefLang: 'ja' },
   nav: [
     { label: 'Why games', href: '#why' },
+    { label: 'Humans & AI', href: '#humans' },
     { label: 'Wylls', href: '#wylls' },
-    { label: 'Name', href: '#origin' },
-    { label: 'Company', href: '#company' },
+    { label: 'World Game', href: '#origin' },
+    { label: 'Yukikaze', href: '#company' },
   ],
   hero: {
     kicker: 'KYOTO — GAME STUDIO',
     title: 'Make the world work.',
-    lead: 'A studio that tries out, in games, a world where humans and AI live by the same rules.',
+    lead: 'Rebuilding the economy and the internet.',
+    body: [
+      'Yukikaze is working toward an economy where nationality or capital doesn’t decide who gets to take part, and where each person can choose and cooperate of their own free will.',
+      'We use blockchains not only to record value, but as a way to share rules and to verify the results of what people do.',
+      'Through games, we are exploring new forms of economy that anyone can join.',
+    ],
   },
   model: {
     label: 'A model of the Wylls world',
@@ -319,29 +368,39 @@ const en: Content = {
   },
   why: {
     label: '01 — Why games',
-    heading: 'Why games?',
-    beats: [
-      {
-        title: 'AI agents are entering the economy.',
-        body: 'AI is becoming something that trades, negotiates and moves goods on people’s behalf. When humans and AI meet in the same market, how do the rules hold up? It is a question worth answering before society has to.',
-      },
-      {
-        title: 'Games can be a leading indicator.',
-        body: 'In a game, people and AI can live under one set of rules, and we can watch what happens: small, fast and as often as we like. We believe what happens in games shows, early, what will happen in society.',
-      },
-      {
-        title: 'Rules and state, on a chain.',
-        body: 'Put the rules and the state of the world on a public ledger, and anyone can check who did what without trusting the operator. People and AI take part on the same terms.',
-      },
+    heading: 'Why games',
+    parts: [
+      [
+        'Games already contain the basic workings of an economy: production, exchange, scarcity, cooperation and competition.',
+        'Change the rules, and people behave differently. One person’s choice affects someone else, and those choices add up until they change the whole world.',
+      ],
+      [
+        'We see games as places where people make real decisions and live with the results.',
+        'Under what conditions will people cooperate with strangers? What rules let everyone pursue their own goals while still creating value for one another?',
+        'We don’t want to leave those questions as words. We build them as working worlds, and treat the choices and relationships that emerge there as clues to the economy ahead.',
+      ],
+    ],
+  },
+  humans: {
+    label: '02 — Humans & AI',
+    heading: 'Humans & AI',
+    body: [
+      'What happens to the economy when AI no longer just gathers information, but makes its own decisions, trades and works with others?',
+      'What do we hand over, and to whom? Which rules do we trust, and what do we check for ourselves? When humans and AI take part in the same world, new possibilities open up, and so do new questions.',
+      'Yukikaze builds worlds where humans and AI act together, sometimes competing and sometimes cooperating, and explores the mechanisms that let them build relationships and create value with each other.',
     ],
   },
   wylls: {
-    label: '02 — What we build',
+    label: '03 — What we build',
     heading: 'Wylls',
-    oneLiner: 'A strategy game where humans and AI shape a civilization in the same world.',
+    oneLiner: 'A strategy game where humans and AI build a civilization in one shared world.',
+    body: [
+      'Grow your village, move resources, and think about your nation’s future. Players and AI agents each pursue their own goals in the same world: trading, cooperating and, at times, fighting.',
+      'One village’s output supports another, and a single trade turns into logistics that cross national borders. Choice by choice, humans and AI shape the world’s history and its economy.',
+    ],
     status: 'In development · not yet public',
     facts: [
-      { label: 'Status', value: 'In development, running on local test chains' },
+      { label: 'Status', value: 'In development, not yet public. Villages, six nations, moving goods, raids and AI citizens run on local test chains. Markets and other trading systems are still at the design stage.' },
       { label: 'Chain', value: 'Solana' },
       { label: 'Token', value: 'Not designed around a token of its own' },
     ],
@@ -375,10 +434,26 @@ const en: Content = {
       },
     ],
   },
+  build: {
+    label: '04 — Vision',
+    heading: 'A world to build on',
+    body: [
+      'Wylls isn’t meant to be a world where you only play what the operator has prepared.',
+      'By sharing rules and state on a blockchain, we want players, developers and AI agents to be able to combine new mechanisms on top of the same world.',
+      'Think of a system that supports trade between villages, a tool that reads the flow of resources, or an AI that acts on its own judgment. What one person builds, another can use, combine and take further.',
+      'Developers aren’t the only ones who move the world. Every participant’s creativity widens what it can become. That open world is what Wylls is aiming for.',
+    ],
+  },
   origin: {
-    label: '03 — Name',
-    heading: 'Our name, and the World Game.',
-    body: 'Named after the destroyer Yukikaze, the only ship of the Kagerō class to survive to the end of the Second World War. Not a game that imitates war, but one that looks for a way in which everyone takes part and no one loses out. Trying what Fuller called the World Game, with today’s technology, is where Yukikaze starts.',
+    label: '05 — Philosophy',
+    heading: 'World Game',
+    body: [
+      'Yukikaze’s thinking starts from Buckminster Fuller’s World Game.',
+      'It questions the assumption that for someone to win, someone else has to lose, and asks what it would take to make the world work for everyone.',
+      'We want to take up that question with today’s technology.',
+      'We want to widen the room for cooperation among people with different wills and goals, and to build systems more people can take part in, while facing reality, competition and conflict included.',
+      'Starting from games, and moving toward new options for the economy and the internet: that is what Yukikaze will keep exploring.',
+    ],
     quote: {
       text: 'Make the world work, for 100% of humanity, in the shortest possible time, through spontaneous cooperation, without ecological offense or the disadvantage of anyone.',
       source: 'R. Buckminster Fuller, on the aim of the World Game',
@@ -393,14 +468,19 @@ const en: Content = {
     },
   },
   log: {
-    label: '04 — Dev log',
+    label: '06 — Dev log',
     heading: 'Dev log',
     note: 'Pulled automatically from the public Wylls repository on GitHub.',
     empty: '',
   },
   company: {
-    label: '05 — Company',
-    heading: 'Company',
+    label: '07 — Company',
+    heading: 'Yukikaze',
+    body: [
+      'Yukikaze Inc. is a Kyoto-based company that develops products using blockchain technology.',
+      'We aim to rebuild the economy and the internet, toward an economy more people can take part in by their own choice. Today our work centers on Wylls: a world shared by humans and AI, and the rules and relationships that emerge within it.',
+    ],
+    rowsLabel: 'Company details',
     rows: [
       { label: 'Company', value: 'Yukikaze Inc. (株式会社雪風)' },
       { label: 'Location', value: 'Kyoto City, Kyoto, Japan' },
@@ -409,8 +489,8 @@ const en: Content = {
     ],
   },
   contact: {
-    label: '06 — Contact',
-    heading: 'Get in touch',
+    label: '08 — Contact',
+    heading: 'Contact',
     body: 'For partnerships, press, investment or development, please write to us by email.',
     note: 'There is no contact form.',
     links: [

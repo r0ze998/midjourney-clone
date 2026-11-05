@@ -28,6 +28,26 @@ function SectionLabel({ children }: { children: ReactNode }) {
   return <p className="label mb-5">{children}</p>;
 }
 
+/** セクションの見出し（英語、ヒーローと同じ太い書体） */
+function H2({ id, children, className = '' }: { id?: string; children: ReactNode; className?: string }) {
+  return (
+    <h2 id={id} lang="en" className={`font-display text-[2.75rem] font-extrabold uppercase leading-[0.92] tracking-[0.01em] [font-variation-settings:'opsz'_72] md:text-[3.5rem] ${className}`}>
+      {children}
+    </h2>
+  );
+}
+
+/** 本文の段落 */
+function Paras({ items, className = '' }: { items: string[]; className?: string }) {
+  return (
+    <div className={`space-y-4 text-[0.9375rem] leading-[2] text-ink-2 ${className}`}>
+      {items.map((t) => (
+        <p key={t}>{t}</p>
+      ))}
+    </div>
+  );
+}
+
 const fmtDate = (iso: string, lang: Lang) =>
   new Intl.DateTimeFormat(lang === 'ja' ? 'ja-JP' : 'en-GB', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'Asia/Tokyo' }).format(new Date(iso));
 
@@ -114,35 +134,55 @@ export default function HomePage({ lang, feed }: { lang: Lang; feed: FeedItem[] 
                   ))}
               </h1>
 
-              <p className="mt-4 max-w-[24em] text-[0.9375rem] leading-[1.9] text-ink-2 lg:text-base">{c.hero.lead}</p>
-              <div className="js-only mt-8 border-t border-rule pt-5">
+              <p className="serif mt-5 text-[1.25rem] leading-[1.6] lg:text-[1.375rem]">{c.hero.lead}</p>
+              <div className="mt-4 max-w-[30em] space-y-2.5 text-[0.875rem] leading-[1.9] text-ink-2">
+                {c.hero.body.map((t) => (
+                  <p key={t}>{t}</p>
+                ))}
+              </div>
+              <div className="js-only mt-7 border-t border-rule pt-5">
                 <ModelControls c={c.model} />
               </div>
             </div>
           </div>
         </section>
 
-        {/* 2. なぜゲームなのか（3 つの場面） */}
+        {/* 2. なぜゲームか（2 つの場面）と、人間とAI（AIの区画の場面） */}
         <section id="why" aria-labelledby="why-heading" className="relative">
           <span id="vision" aria-hidden="true" />
           <span id="approach" aria-hidden="true" />
           <div aria-hidden="true" className="over-model absolute inset-y-0 left-0 hidden w-[56%] lg:block" />
           <div className="relative mx-auto max-w-[1440px] lg:px-12">
-            <div className="bg-paper px-5 pt-16 sm:px-8 lg:bg-transparent lg:px-0 lg:pt-28">
-              <SectionLabel>{c.why.label}</SectionLabel>
-              <h2 id="why-heading" className="serif text-[1.75rem] leading-[1.35] md:text-[2.25rem]">
-                {c.why.heading}
-              </h2>
-            </div>
-            {c.why.beats.map((b, i) => (
-              <div key={b.title} data-scene={`why-${i + 1}`} className="lg:flex lg:min-h-[88svh] lg:items-center">
-                <Over className="lg:max-w-[28rem]">
-                  <p className="label mb-3 !text-ai-ink">{String(i + 1).padStart(2, '0')}</p>
-                  <h3 className="serif text-[1.375rem] leading-[1.5] md:text-[1.625rem]">{b.title}</h3>
-                  <p className="mt-4 text-[0.9375rem] leading-[2] text-ink-2">{b.body}</p>
+            {c.why.parts.map((part, i) => (
+              <div key={i} data-scene={i === 0 ? 'why-2' : 'why-3'} className="lg:flex lg:min-h-[92svh] lg:items-center">
+                <Over className="lg:max-w-[29rem]">
+                  {i === 0 && (
+                    <>
+                      <SectionLabel>{c.why.label}</SectionLabel>
+                      <H2 id="why-heading" className="mb-6">
+                        {c.why.heading}
+                      </H2>
+                    </>
+                  )}
+                  <Paras items={part} />
                 </Over>
               </div>
             ))}
+          </div>
+        </section>
+
+        <section id="humans" aria-labelledby="humans-heading" className="relative">
+          <div aria-hidden="true" className="over-model absolute inset-y-0 left-0 hidden w-[56%] lg:block" />
+          <div className="relative mx-auto max-w-[1440px] lg:px-12">
+            <div data-scene="why-1" className="lg:flex lg:min-h-[100svh] lg:items-center">
+              <Over className="lg:max-w-[29rem]">
+                <SectionLabel>{c.humans.label}</SectionLabel>
+                <H2 id="humans-heading" className="mb-6">
+                  {c.humans.heading}
+                </H2>
+                <Paras items={c.humans.body} />
+              </Over>
+            </div>
           </div>
         </section>
 
@@ -155,15 +195,14 @@ export default function HomePage({ lang, feed }: { lang: Lang; feed: FeedItem[] 
             <div className="border-y border-rule bg-card/95 px-5 py-12 backdrop-blur-sm sm:px-8 lg:max-w-[64rem] lg:border lg:p-12">
               <SectionLabel>{c.wylls.label}</SectionLabel>
               <div className="flex flex-wrap items-baseline gap-x-5 gap-y-2">
-                <h2 id="wylls-heading" className="serif text-[2.25rem] leading-none md:text-[2.75rem]">
-                  {c.wylls.heading}
-                </h2>
+                <H2 id="wylls-heading">{c.wylls.heading}</H2>
                 <p className="label flex items-center gap-2 !text-ai-ink">
                   <span aria-hidden="true" className="inline-block h-1.5 w-1.5 rounded-full bg-ai" />
                   {c.wylls.status}
                 </p>
               </div>
-              <p className="serif mt-4 text-[1.125rem] leading-[1.75] md:text-[1.25rem]">{c.wylls.oneLiner}</p>
+              <p className="serif mt-5 text-[1.125rem] leading-[1.75] md:text-[1.25rem]">{c.wylls.oneLiner}</p>
+              <Paras items={c.wylls.body} className="mt-4 max-w-[42rem]" />
 
               {/* 実際の画面と、模型から書き出した映像。どちらも模型と同じ「窓」に収め、映像は右下に重ねる */}
               <figure className="mt-8">
@@ -240,22 +279,37 @@ export default function HomePage({ lang, feed }: { lang: Lang; feed: FeedItem[] 
           </div>
         </section>
 
-        {/* 4. 社名とワールド・ゲーム */}
+        {/* 4. 構想：A world to build on */}
+        <section id="build" data-scene="build" aria-labelledby="build-heading" className="relative">
+          <div aria-hidden="true" className="over-model absolute inset-y-0 left-0 hidden w-[56%] lg:block" />
+          <div className="relative mx-auto max-w-[1440px] lg:flex lg:min-h-[100svh] lg:items-center lg:px-12">
+            <Over className="lg:max-w-[30rem]">
+              <SectionLabel>{c.build.label}</SectionLabel>
+              <H2 id="build-heading" className="mb-6">
+                {c.build.heading}
+              </H2>
+              <Paras items={c.build.body} />
+            </Over>
+          </div>
+        </section>
+
+        {/* 5. ワールド・ゲーム */}
         <section id="origin" data-scene="name" aria-labelledby="origin-heading" className="relative">
           <div aria-hidden="true" className="over-model absolute inset-y-0 left-0 hidden w-[46%] lg:block" />
           <div className="relative mx-auto max-w-[1440px] lg:grid lg:min-h-[100svh] lg:grid-cols-[minmax(0,30rem)_minmax(0,1fr)] lg:items-center lg:gap-12 lg:px-12 lg:py-20">
             <Over window={false} className="lg:max-w-[30rem]">
               <SectionLabel>{c.origin.label}</SectionLabel>
-              <h2 id="origin-heading" className="serif text-[1.75rem] leading-[1.35] md:text-[2.25rem]">
+              <H2 id="origin-heading" className="mb-6">
                 {c.origin.heading}
-              </h2>
-              <figure className="mt-8">
+              </H2>
+              <Paras items={c.origin.body.slice(0, 2)} />
+              <figure className="my-8 border-l border-signal/60 pl-5">
                 <blockquote className="serif text-[1.0625rem] leading-[1.95] md:text-[1.1875rem]">
                   <p>{c.origin.quote.text}</p>
                 </blockquote>
                 <figcaption className="label mt-3 !normal-case !tracking-[0.06em]">— {c.origin.quote.source}</figcaption>
               </figure>
-              <p className="mt-8 text-[0.9375rem] leading-[2] text-ink-2">{c.origin.body}</p>
+              <Paras items={c.origin.body.slice(2)} />
             </Over>
             {/* 球体の模型：スマホでは文章の下、デスクトップでは右 */}
             <div className="bg-paper px-5 pb-12 sm:px-8 lg:bg-transparent lg:px-0 lg:pb-0">
@@ -264,15 +318,13 @@ export default function HomePage({ lang, feed }: { lang: Lang; feed: FeedItem[] 
           </div>
         </section>
 
-        {/* 5. 開発ログ（取り込めないときは出さない） */}
+        {/* 6. 開発ログ（取り込めないときは出さない） */}
         {feed.length > 0 && (
           <section id="log" data-scene="log" aria-labelledby="log-heading" className="relative">
             <div className="relative mx-auto max-w-[1440px] bg-paper px-5 py-16 sm:px-8 lg:bg-transparent lg:px-12 lg:py-24">
               <div className="lg:max-w-[40rem]">
                 <SectionLabel>{c.log.label}</SectionLabel>
-                <h2 id="log-heading" className="serif text-[1.75rem] leading-[1.35] md:text-[2.25rem]">
-                  {c.log.heading}
-                </h2>
+                <H2 id="log-heading">{c.log.heading}</H2>
                 <p className="mt-3 text-[0.8125rem] text-ink-3">{c.log.note}</p>
                 <ul className="mt-6">
                   {feed.map((item) => (
@@ -293,14 +345,16 @@ export default function HomePage({ lang, feed }: { lang: Lang; feed: FeedItem[] 
           </section>
         )}
 
-        {/* 6. 会社概要・連絡先 */}
+        {/* 7. 会社・連絡先 */}
         <section data-scene="company" className="relative">
           <div className="relative mx-auto grid max-w-[1440px] gap-14 bg-paper px-5 py-16 sm:px-8 lg:grid-cols-2 lg:gap-12 lg:bg-transparent lg:px-12 lg:py-24">
             <div id="company">
               <span id="about" aria-hidden="true" />
               <SectionLabel>{c.company.label}</SectionLabel>
-              <h2 className="serif text-[1.75rem] leading-[1.35] md:text-[2.25rem]">{c.company.heading}</h2>
-              <dl className="mt-8">
+              <H2 className="mb-6">{c.company.heading}</H2>
+              <Paras items={c.company.body} />
+              <h3 className="label mb-1 mt-10">{c.company.rowsLabel}</h3>
+              <dl>
                 {c.company.rows.map(({ label, value }) => (
                   <div key={label} className="grid gap-1 border-t border-rule py-4 text-[0.9375rem] sm:grid-cols-[7rem_1fr] sm:gap-6">
                     <dt className="label sm:pt-[0.2rem]">{label}</dt>
@@ -311,7 +365,7 @@ export default function HomePage({ lang, feed }: { lang: Lang; feed: FeedItem[] 
             </div>
             <div id="contact">
               <SectionLabel>{c.contact.label}</SectionLabel>
-              <h2 className="serif text-[1.75rem] leading-[1.35] md:text-[2.25rem]">{c.contact.heading}</h2>
+              <H2>{c.contact.heading}</H2>
               <p className="mt-6 text-[0.9375rem] leading-[2] text-ink-2">{c.contact.body}</p>
               <a
                 href={`mailto:${site.email}`}

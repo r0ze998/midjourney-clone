@@ -109,7 +109,7 @@ export const filmBeats = () => TOUR.map((b) => ({ t: b.t, caption: b.caption, la
 
 // ---- セクションの場面 ----
 
-export type SceneKey = 'hero' | 'why-1' | 'why-2' | 'why-3' | 'wylls' | 'name' | 'log' | 'company';
+export type SceneKey = 'hero' | 'why-1' | 'why-2' | 'why-3' | 'wylls' | 'build' | 'name' | 'log' | 'company';
 
 export type Scene = { view: ViewKey; layers: LayerWeights; verify: number; dim: number; turn: number; spin: number };
 
@@ -133,6 +133,8 @@ export const SCENES: Record<Exclude<SceneKey, 'hero'>, Scene> = {
   // 引いて沈め、実際の画面を前に出す
   wylls: scene('overview', 'none', 84, { dim: 0.6 }),
   // 真上から。国境がすべて一枚に収まり、時間とともに広がる
+  // 構想（A world to build on）：交易路に寄り、荷車と倉庫が組み合わさって動くところ
+  build: scene('trade', 'logistics', 92, { layers: { logistics: 0.7, defense: 0, ai: 0.35 } }),
   // 社名の項は球体の模型が主役。後ろの盤は沈めて、描くのも止める（WorldStage が model.globeActive を見る）
   name: scene('overview', 'none', 100, { dim: 0.98, spin: 30 }),
   log: scene('overview', 'none', 116, { dim: 0.75, spin: 40 }),
