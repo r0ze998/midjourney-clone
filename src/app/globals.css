@@ -23,6 +23,7 @@
     "Yu Gothic UI", "Yu Gothic", Meiryo, system-ui, sans-serif;
   --font-serif: var(--font-zen-old-mincho), "Hiragino Mincho ProN", "Yu Mincho", serif;
   --font-mono: var(--font-geist-mono), ui-monospace, "SFMono-Regular", monospace;
+  --font-display: var(--font-big-shoulders), "Arial Narrow", sans-serif;
 
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -175,5 +176,28 @@
   *::after {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
+  }
+}
+
+/* Wylls の欄の窓：スクロールで画面に入るとき、少し傾いた状態から正面に起き上がる（デスクトップ・対応ブラウザのみ） */
+@media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .tilt-in {
+      transform-origin: 50% 100%;
+      animation: tilt-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 38%;
+    }
+    .tilt-in-late {
+      animation-range: entry 10% cover 46%;
+    }
+  }
+}
+@keyframes tilt-in {
+  from {
+    transform: perspective(1600px) rotateX(16deg) rotateY(-6deg) translateY(40px) scale(0.95);
+  }
+  to {
+    transform: none;
   }
 }

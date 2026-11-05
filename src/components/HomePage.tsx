@@ -5,8 +5,9 @@ import Rain from './Rain';
 import ModelControls, { ModelConsole, ModelReadout, ScrubArea } from './ModelControls';
 import ExternalLink from './ExternalLink';
 import CartVideo from './CartVideo';
+import ScreenFrame from './ScreenFrame';
 import wyllsShot from '../assets/wylls-village.jpg';
-import { content, site, type Lang } from '../content/site';
+import { content, screenUi, site, type Lang } from '../content/site';
 import type { FeedItem } from '../lib/feed';
 import { organizationJsonLd } from '../lib/metadata';
 
@@ -100,8 +101,14 @@ export default function HomePage({ lang, feed }: { lang: Lang; feed: FeedItem[] 
                 <span aria-hidden="true" className="inline-block h-px w-6 bg-signal" />
                 {c.hero.kicker}
               </p>
-              <h1 id="hero-title" className="serif text-[2.5rem] leading-[1.2] tracking-[0.005em] sm:text-[3rem] lg:text-[2.875rem]">
-                {c.hero.title}
+              <h1 id="hero-title" className="font-display text-[3.75rem] font-extrabold uppercase [font-variation-settings:'opsz'_72] leading-[0.92] tracking-[0.005em] sm:text-[4.75rem] lg:text-[5.5rem]">
+                {c.hero.title.replace(/^(\S+ \S+) /, '$1\n')
+                  .split('\n')
+                  .map((line, i) => (
+                    <span key={i} className="block">
+                      {line}
+                    </span>
+                  ))}
               </h1>
 
               <p className="mt-4 max-w-[24em] text-[0.9375rem] leading-[1.9] text-ink-2 lg:text-base">{c.hero.lead}</p>
@@ -155,23 +162,35 @@ export default function HomePage({ lang, feed }: { lang: Lang; feed: FeedItem[] 
               </div>
               <p className="serif mt-4 text-[1.125rem] leading-[1.75] md:text-[1.25rem]">{c.wylls.oneLiner}</p>
 
+              {/* 実際の画面と、模型から書き出した映像。どちらも模型と同じ「窓」に収め、映像は右下に重ねる */}
               <figure className="mt-8">
-                <div className="overflow-hidden border border-rule bg-ink">
-                  <Image
-                    src={wyllsShot}
-                    alt={c.wylls.shot.alt}
-                    placeholder="blur"
-                    sizes="(min-width: 1024px) 900px, 100vw"
-                    quality={78}
-                    className="h-auto w-full"
-                  />
+                <div className="relative lg:pb-[16%] lg:pr-[12%]">
+                  <div className="tilt-in">
+                    <ScreenFrame title={screenUi.shot.title} meta={screenUi.shot.meta} tags={[...screenUi.shot.tags]}>
+                      <Image
+                        src={wyllsShot}
+                        alt={c.wylls.shot.alt}
+                        placeholder="blur"
+                        sizes="(min-width: 1024px) 860px, 100vw"
+                        quality={78}
+                        className="block h-auto w-full brightness-[0.88] saturate-[0.9]"
+                      />
+                    </ScreenFrame>
+                  </div>
+                  <div className="tilt-in tilt-in-late mt-4 lg:absolute lg:bottom-0 lg:right-0 lg:mt-0 lg:w-[42%] lg:shadow-[0_24px_60px_-12px_rgba(0,0,0,0.9)]">
+                    <ScreenFrame title={screenUi.video.title} meta={screenUi.video.meta} accent="ai">
+                      <CartVideo bare caption={c.wylls.video.caption} play={c.wylls.video.play} pause={c.wylls.video.pause} />
+                    </ScreenFrame>
+                  </div>
                 </div>
-                <figcaption className="mt-3 text-[0.75rem] leading-relaxed text-ink-3">{c.wylls.shot.caption}</figcaption>
+                <figcaption className="mt-4 max-w-[46rem] text-[0.75rem] leading-relaxed text-ink-3">
+                  {c.wylls.shot.caption}
+                  <br />
+                  {c.wylls.video.caption}
+                </figcaption>
               </figure>
 
-              <div className="mt-8 grid gap-8 md:grid-cols-2">
-                <CartVideo caption={c.wylls.video.caption} play={c.wylls.video.play} pause={c.wylls.video.pause} />
-                <div>
+              <div className="mt-10 grid gap-8 md:grid-cols-2">
                 <dl>
                   {c.wylls.facts.map(({ label, value }) => (
                     <div key={label} className="grid grid-cols-[5.5rem_1fr] gap-3 border-t border-rule py-3 text-[0.875rem]">
@@ -180,7 +199,7 @@ export default function HomePage({ lang, feed }: { lang: Lang; feed: FeedItem[] 
                     </div>
                   ))}
                 </dl>
-                <ul className="mt-6">
+                <ul>
                   {c.wylls.links.map(({ label, href, note }) => (
                     <li key={href}>
                       <ExternalLink href={href} hint={c.externalHint} className="row-link">
@@ -190,7 +209,6 @@ export default function HomePage({ lang, feed }: { lang: Lang; feed: FeedItem[] 
                     </li>
                   ))}
                 </ul>
-                </div>
               </div>
 
               <h3 className="label mb-2 mt-12">{c.wylls.pastLabel}</h3>

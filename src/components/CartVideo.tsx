@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 
 // 荷車の短い映像。画面に入ったときだけ再生し、出たら止める。動きを減らす設定では自動で再生しない。
 // 映像が読めなくても、静止画（poster）とキャプションだけで内容が伝わるようにする。
-export default function CartVideo({ caption, play, pause }: { caption: string; play: string; pause: string }) {
+export default function CartVideo({ caption, play, pause, bare = false }: { caption: string; play: string; pause: string; bare?: boolean }) {
   const ref = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
   const [userPaused, setUserPaused] = useState(false);
@@ -22,8 +22,8 @@ export default function CartVideo({ caption, play, pause }: { caption: string; p
   }, [userPaused]);
 
   return (
-    <figure>
-      <div className="relative overflow-hidden border border-rule bg-paper-2">
+    <figure className="m-0">
+      <div className={`relative overflow-hidden bg-paper-2 ${bare ? '' : 'border border-rule'}`}>
         <video
           ref={ref}
           className="block aspect-video h-auto w-full"
@@ -56,7 +56,7 @@ export default function CartVideo({ caption, play, pause }: { caption: string; p
           {playing ? pause : play}
         </button>
       </div>
-      <figcaption className="mt-3 text-[0.75rem] leading-relaxed text-ink-3">{caption}</figcaption>
+      <figcaption className={bare ? 'sr-only' : 'mt-3 text-[0.75rem] leading-relaxed text-ink-3'}>{caption}</figcaption>
     </figure>
   );
 }

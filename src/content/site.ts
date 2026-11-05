@@ -50,6 +50,20 @@ export const modelUi = {
   },
 } as const;
 
+/** Wylls の欄の画面の窓（英語で固定。位置は src/assets/wylls-village.jpg 1440×900 に対する %） */
+export const screenUi = {
+  shot: {
+    title: 'Wylls — dev client',
+    meta: 'Sample world · fixed clock',
+    tags: [
+      { x: 23, y: 3.5, text: 'Resources', dir: 'down' },
+      { x: 47, y: 49, text: 'Town · Lamar', dir: 'down', mobile: true },
+      { x: 50, y: 92, text: 'Town actions', dir: 'up' },
+    ],
+  },
+  video: { title: 'Model — ride a cart', meta: 'Exported from this site' },
+} as const;
+
 type Link = { label: string; href: string; note: string };
 type Row = { label: string; value: string };
 

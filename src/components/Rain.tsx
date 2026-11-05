@@ -5,9 +5,14 @@ import { rng } from '../model/hex';
 
 const GLYPHS = 'ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ0123456789';
 const FONT = 15;
-const GAP = 1.7; // 列の間隔（文字幅の倍数）。疎らにして、文字が読める速さにする
+const GAP = 1.15; // 列の間隔（文字幅の倍数）。列は詰め、同時に落ちる列を少なくしてまばらに見せる
 
-type Column = { x: number; y: number; speed: number; text: string; i: number; tone: number };
+const TRAIL = 18; // 尾の長さ（文字数）
+
+// 雫（列ごとに一つ）。落ち切ったら、しばらく休んでから次を落とす。
+// 毎フレーム画面を消して、落ちている雫だけを描き直す（重ね塗りで薄める方式は残像が消えきらないため）。
+// words: 社訓の断片を流す列か、ばらばらの記号を流す列か。chars: マスごとの文字
+type Column = { x: number; y: number; speed: number; text: string; tone: number; rest: number; words: boolean; chars: string[] };
 
 // 背景を流れる文字の雨。canvas + requestAnimationFrame。タブ非表示時は止める。
 export default function Rain({ className = '' }: { className?: string }) {
@@ -29,59 +34,82 @@ export default function Rain({ className = '' }: { className?: string }) {
     let last = 0;
 
     const pick = () => rainTexts[Math.floor(random() * rainTexts.length)];
-    const spawn = (x: number, h: number): Column => ({
-      x,
-      y: -random() * h,
-      speed: 28 + random() * 46,
-      text: pick(),
-      i: 0,
-      tone: 0.3 + random() * 0.7,
-    });
-
-    // 残像の濃さ。60fps で 1 フレームあたり 0.024 暗くするのと同じ減衰を、任意の dt に換算する
-    const fadeFor = (dt: number) => 1 - Math.pow(1 - 0.024, dt * 60);
+    const glyph = () => GLYPHS[Math.floor(random() * GLYPHS.length)];
+    let rows = 0;
+    const spawn = (x: number, h: number, first = false): Column => {
+      const words = random() < 0.3;
+      const text = pick();
+      const start = Math.floor(random() * 50);
+      return {
+        x,
+        y: first ? random() * h : -FONT * (1 + random() * 4),
+        speed: 70 + random() * 110,
+        text,
+        tone: 0.45 + random() * 0.55,
+        // 同時に落ちているのは列の 1〜2 割。休みは 3〜14 秒
+        rest: first ? (random() < 0.16 ? 0 : random() * 14) : 3 + random() * 11,
+        words,
+        // 社訓の列は文字を順に、記号の列はばらばらに置く
+        chars: Array.from({ length: rows + TRAIL + 4 }, (_, i) => (words ? text[(start + i) % text.length] : glyph())),
+      };
+    };
 
     let size = { w: 0, h: 0 };
+    let dprNow = 1;
+    let fontStr = '';
     function resize() {
       const w = canvas.offsetWidth;
       const h = canvas.offsetHeight;
       // スマホのツールバーの出入りで高さだけ少し変わる場合は作り直さない
       if (w === size.w && h <= size.h) return;
       size = { w, h };
-      const dpr = Math.min(window.devicePixelRatio || 1, w >= 1024 ? 2 : 1.5);
-      canvas.width = Math.round(w * dpr);
-      canvas.height = Math.round(h * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.font = `${FONT}px ${getComputedStyle(canvas).fontFamily}`;
-      ctx.textAlign = 'center';
+      dprNow = Math.min(window.devicePixelRatio || 1, w >= 1024 ? 2 : 1.5);
+      canvas.width = Math.round(w * dprNow);
+      canvas.height = Math.round(h * dprNow);
+      rows = Math.ceil(h / FONT) + 2;
+      fontStr = `${FONT}px ${getComputedStyle(canvas).fontFamily}`;
       const n = Math.floor(w / (FONT * GAP));
-      cols = Array.from({ length: n }, (_, k) => spawn(k * FONT * GAP + (FONT * GAP) / 2, h));
-      ctx.fillStyle = '#040604';
-      ctx.fillRect(0, 0, w, h);
-      // 最初から画面全体に雨が降っているように、約20秒分を粗い刻みで先に進めておく
-      for (let k = 0; k < 100; k++) step(0.2);
+      cols = Array.from({ length: n }, (_, k) => spawn(k * FONT * GAP + (FONT * GAP) / 2, h, true));
+      draw();
     }
 
     function step(dt: number) {
-      const w = size.w;
       const h = size.h;
-      // 残像: 前のフレームを少しだけ暗くする
-      ctx.fillStyle = `rgba(4, 6, 4, ${fadeFor(dt)})`;
-      ctx.fillRect(0, 0, w, h);
       for (const c of cols) {
-        const from = Math.floor(c.y / FONT);
-        c.y += c.speed * dt;
-        const to = Math.floor(c.y / FONT);
-        // 進んだ分のマス目すべてに文字を打つ（dt が大きくても列が途切れない）
-        for (let cell = from + 1; cell <= to; cell++) {
-          if (cell < 0) continue;
-          const ch = random() < 0.03 ? GLYPHS[Math.floor(random() * GLYPHS.length)] : c.text[c.i % c.text.length];
-          c.i++;
-          ctx.fillStyle = `rgba(62, 240, 140, ${0.85 * c.tone})`;
-          ctx.fillText(ch, c.x, cell * FONT);
+        if (c.rest > 0) {
+          c.rest -= dt;
+          continue;
         }
-        if (c.y > h + FONT * c.text.length) {
-          Object.assign(c, spawn(c.x, h), { y: -random() * h * 0.4 });
+        c.y += c.speed * dt;
+        // 記号の列は、途中の文字が時々入れ替わる
+        if (!c.words && random() < 0.35 * dt * 60 * 0.1) c.chars[Math.floor(random() * c.chars.length)] = glyph();
+        if (c.y > h + FONT * (TRAIL + 2)) Object.assign(c, spawn(c.x, h));
+      }
+      draw();
+    }
+
+    function draw() {
+      const { w, h } = size;
+      ctx.setTransform(dprNow, 0, 0, dprNow, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+      ctx.font = fontStr;
+      ctx.textAlign = 'center';
+      for (const c of cols) {
+        if (c.rest > 0) continue;
+        const head = Math.floor(c.y / FONT);
+        for (let k = 0; k < TRAIL; k++) {
+          const cell = head - k;
+          if (cell < 0) break;
+          if (cell * FONT > h + FONT) continue;
+          const ch = c.chars[cell % c.chars.length];
+          if (k === 0) {
+            // 先頭は白に近い緑で光らせる
+            ctx.fillStyle = `rgba(214, 255, 228, ${0.7 + 0.3 * c.tone})`;
+          } else {
+            const a = Math.pow(1 - k / TRAIL, 1.6) * 0.85 * c.tone;
+            ctx.fillStyle = `rgba(62, 240, 140, ${a})`;
+          }
+          ctx.fillText(ch, c.x, cell * FONT);
         }
       }
     }
