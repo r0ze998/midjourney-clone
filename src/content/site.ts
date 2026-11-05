@@ -123,8 +123,6 @@ export type Content = {
       departed: string;
       arrived: string;
       units: string;
-      hint: string;
-      note: string;
       stillAlt: string;
     };
   };
@@ -253,8 +251,6 @@ const ja: Content = {
       departed: '出発',
       arrived: '到着',
       units: '単位',
-      hint: 'ドラッグやタッチで回せます。キーボードでは球体にフォーカスして矢印キーを使います。',
-      note: 'ワールド・ゲームの考え方を描いた模式図です。地形・集落・物流は、実際の地理や Wylls のゲーム内容ではありません。',
       stillAlt: '球体の模型。緑の大陸に 6 つの集落があり、集落のあいだを荷が弧を描いて運ばれている。',
     },
   },
@@ -399,8 +395,6 @@ const en: Content = {
       departed: 'Departed',
       arrived: 'Arrived',
       units: 'units',
-      hint: 'Drag or swipe to turn. On a keyboard, focus the globe and use the arrow keys.',
-      note: 'A schematic of the World Game idea. The land, settlements and logistics are not real geography and not Wylls game content.',
       stillAlt: 'A globe: six settlements on green continents, with goods carried between them along arcs.',
     },
   },

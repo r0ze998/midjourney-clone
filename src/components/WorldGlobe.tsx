@@ -135,8 +135,8 @@ export default function WorldGlobe({ ui }: { ui: Ui }) {
           renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, lowResolution || still ? 1 : 1.75));
           renderer.setSize(w, h, false);
           camera.aspect = w / h;
-          // 球が枠の 78% ほどに収まる距離
-          fitDistance = 1.18 / Math.tan((camera.fov * DEG) / 2) / Math.min(1, camera.aspect) / 0.78;
+          // 輸送路の余白を残しつつ、地形と集落が読める大きさにする。
+          fitDistance = 1.18 / Math.tan((camera.fov * DEG) / 2) / Math.min(1, camera.aspect) / 0.86;
           if (to) {
             from = { yaw, pitch, distance, lift };
             to.distance = fitDistance;
@@ -177,10 +177,9 @@ export default function WorldGlobe({ ui }: { ui: Ui }) {
             tag.d.style.transform = `translate(${x}px, ${y}px)`;
             tag.d.dataset.sel = i === sel ? '1' : '0';
             tag.d.dataset.small = small && i !== sel ? '1' : '0';
-            // 点は集落に残し、選択中の札だけ離して建物を隠さない。
-            tag.label.style.transform = i === sel
-              ? `translate(${x > size.w - 155 ? -135 : 24}px, ${y < 70 ? 30 : -24}px)`
-              : '';
+            // 画面の端では札を内側に寄せ、回転しても途中で切れないようにする。
+            const tagWidth = small ? 44 : 150;
+            tag.label.style.transform = `translate(${x > size.w - tagWidth ? -tagWidth : 0}px, ${y < 24 ? 28 : 0}px)`;
             tag.num.textContent = String(st.stocks[i]);
           });
           return st;
@@ -488,8 +487,6 @@ export default function WorldGlobe({ ui }: { ui: Ui }) {
             </p>
           </div>
         )}
-        {!failed && <p className="mt-3 text-[0.75rem] leading-relaxed text-ink-3">{ui.hint}</p>}
-        <p className="mt-1 text-[0.75rem] leading-relaxed text-ink-3">{ui.note}</p>
       </div>
     </div>
   );

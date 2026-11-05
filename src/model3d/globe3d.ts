@@ -149,6 +149,7 @@ export function buildGlobe(opts: { rich: boolean }) {
   };
   const colors: number[] = [];
   const treeSpots: THREE.Vector3[] = [];
+  const peakSpots: { p: THREE.Vector3; size: number; snow: boolean }[] = [];
   const centroid = new THREE.Vector3();
   const tint = new THREE.Color();
   const dryTint = new THREE.Color();
@@ -166,6 +167,12 @@ export function buildGlobe(opts: { rich: boolean }) {
     const h = centroid.length();
     const n = fbm(centroid, 5.5);
     const shore = (vs[0].shore + vs[1].shore + vs[2].shore) / 3;
+    const mountain = mountainAt(lat, lon);
+    // Low-poly peaks give the larger mountain ranges a readable silhouette at overview scale.
+    // They are placed only on inland terrain and share one instanced mesh per material.
+    if (lands === 3 && shore > 4 && mountain > 0.019 && rand() < (opts.rich ? 0.018 : 0.012)) {
+      peakSpots.push({ p: centroid.clone(), size: 0.7 + Math.min(0.55, mountain * 14) + rand() * 0.45, snow: mountain > 0.034 });
+    }
     if (lands === 0) {
       // 海底：岸に近いほど明るい（水面ごしに浅瀬が見える）
       tint.copy(C.deep).lerp(C.shelf, 0.9 * (1 - clamp01(shore / 4)));
@@ -255,16 +262,37 @@ export function buildGlobe(opts: { rich: boolean }) {
   const q = new THREE.Quaternion();
   const m4 = new THREE.Matrix4();
   const s3 = new THREE.Vector3();
-  const trees = new THREE.InstancedMesh(new THREE.ConeGeometry(0.006, 0.02, 5, 1).translate(0, 0.01, 0), new THREE.MeshStandardMaterial({ color: '#2f4a28', roughness: 0.9, flatShading: true }), Math.max(1, treeSpots.length));
+  const trees = new THREE.InstancedMesh(new THREE.ConeGeometry(0.007, 0.024, 5, 1).translate(0, 0.012, 0), new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.95, flatShading: true }), Math.max(1, treeSpots.length));
   trees.count = treeSpots.length;
   treeSpots.forEach((p, i) => {
     q.setFromUnitVectors(up, p.clone().normalize());
     const k = 0.7 + hash(i, 1, 2) * 0.7;
     m4.compose(p, q, s3.set(k, k, k));
     trees.setMatrixAt(i, m4);
+    trees.setColorAt(i, new THREE.Color().setHSL(0.28 + hash(i, 3, 7) * 0.025, 0.29, 0.18 + hash(i, 9, 2) * 0.08));
   });
+  if (trees.instanceColor) trees.instanceColor.needsUpdate = true;
   trees.castShadow = true;
   root.add(trees);
+
+  // Clustered angular peaks read as a game-board mountain range without extra draw calls per peak.
+  const peakGeo = new THREE.ConeGeometry(0.014, 0.044, 5).translate(0, 0.022, 0);
+  const peakMat = new THREE.MeshStandardMaterial({ color: '#8c8e7e', roughness: 0.96, flatShading: true });
+  const peaks = new THREE.InstancedMesh(peakGeo, peakMat, Math.max(1, peakSpots.length));
+  peaks.count = peakSpots.length;
+  const snowGeo = new THREE.ConeGeometry(0.006, 0.013, 5).translate(0, 0.038, 0);
+  const snowMat = new THREE.MeshStandardMaterial({ color: '#aeb9ad', roughness: 0.95, flatShading: true });
+  const snowySpots = peakSpots.filter((p) => p.snow);
+  const snowPeaks = new THREE.InstancedMesh(snowGeo, snowMat, Math.max(1, snowySpots.length));
+  snowPeaks.count = snowySpots.length;
+  const placePeak = (spot: { p: THREE.Vector3; size: number }, i: number, mesh: THREE.InstancedMesh) => {
+    q.setFromUnitVectors(up, spot.p.clone().normalize());
+    m4.compose(spot.p, q, s3.setScalar(spot.size));
+    mesh.setMatrixAt(i, m4);
+  };
+  peakSpots.forEach((spot, i) => placePeak(spot, i, peaks));
+  snowySpots.forEach((spot, i) => placePeak(spot, i, snowPeaks));
+  root.add(peaks, snowPeaks);
 
   // ---- 6 つの集落：家の群れ、灯り、在庫の箱 ----
   const surface = (lat: number, lon: number) => {
@@ -285,6 +313,16 @@ export function buildGlobe(opts: { rich: boolean }) {
   const houseMesh = new THREE.InstancedMesh(houseGeo, walls, NATIONS.length * HOUSES);
   const roofMesh = new THREE.InstancedMesh(roofGeo, roofs, NATIONS.length * HOUSES);
   const crates = new THREE.InstancedMesh(crateGeo, crateMat, NATIONS.length * CRATES);
+  const baseGeo = new THREE.CylinderGeometry(0.095, 0.101, 0.014, 6).translate(0, -0.007, 0);
+  const baseMat = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 1, flatShading: true });
+  const bases = new THREE.InstancedMesh(baseGeo, baseMat, NATIONS.length);
+  const baseColors = ['#76865d', '#6c9290', '#969b8e', '#ad9b69', '#6b9298', '#ae7a5d'].map((c) => new THREE.Color(c));
+  const poleGeo = new THREE.CylinderGeometry(0.002, 0.0025, 0.075, 5).translate(0, 0.0375, 0);
+  const poleMat = new THREE.MeshStandardMaterial({ color: '#d8c69d', roughness: 0.9, flatShading: true });
+  const poles = new THREE.InstancedMesh(poleGeo, poleMat, NATIONS.length);
+  const flagGeo = new THREE.BoxGeometry(0.03, 0.016, 0.0015).translate(0.015, 0.066, 0);
+  const flagMat = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.9, flatShading: true, side: THREE.DoubleSide });
+  const flags = new THREE.InstancedMesh(flagGeo, flagMat, NATIONS.length);
   houseMesh.castShadow = roofMesh.castShadow = crates.castShadow = true;
   const frames: { pos: THREE.Vector3; q: THREE.Quaternion; east: THREE.Vector3; north: THREE.Vector3; normal: THREE.Vector3 }[] = [];
   // 名前に対応する小さなランドマーク。地理や建築の再現ではなく模型上の目印。
@@ -307,7 +345,7 @@ export function buildGlobe(opts: { rich: boolean }) {
     const group = new THREE.Group();
     group.position.copy(pos0).addScaledVector(normal, 0.003);
     group.quaternion.copy(qn);
-    group.scale.setScalar(1.28);
+    group.scale.setScalar(3.2);
     root.add(group);
     if (ni === 0) { // Woodland: 一段高い針葉樹の群れ
       for (const [x, z, h] of [[-0.034, -0.014, 0.038], [-0.04, 0.018, 0.031], [0.033, 0.026, 0.034]]) {
@@ -328,12 +366,12 @@ export function buildGlobe(opts: { rich: boolean }) {
     } else if (ni === 3) { // Grassland: 風車の羽根
       addBox(group, 0.034, 0.008, 0.012, 0.012, 0.04, landmarkMat.ochre);
       const rotor = new THREE.Group();
-      rotor.position.set(0.034, 0.044, 0.008);
+      rotor.position.set(0.034, 0.037, 0.015);
       for (let i = 0; i < 4; i++) {
-        const blade = new THREE.Mesh(new THREE.BoxGeometry(0.005, 0.0015, 0.026), landmarkMat.beacon);
-        blade.position.z = 0.016;
+        const blade = new THREE.Mesh(new THREE.BoxGeometry(0.006, 0.026, 0.0015), landmarkMat.beacon);
+        blade.position.y = 0.015;
         const arm = new THREE.Group();
-        arm.rotation.y = (i * Math.PI) / 2;
+        arm.rotation.z = (i * Math.PI) / 2;
         arm.add(blade);
         rotor.add(arm);
       }
@@ -375,27 +413,35 @@ export function buildGlobe(opts: { rich: boolean }) {
   const eventRings: THREE.Mesh[] = [];
   NATIONS.forEach((n, ni) => {
     const normal = geo(n.lat, n.lon).normalize();
-    const pos0 = normal.clone().multiplyScalar(surface(n.lat, n.lon));
+    const pos0 = normal.clone().multiplyScalar(surface(n.lat, n.lon) + 0.004);
     const qn = new THREE.Quaternion().setFromUnitVectors(up, normal);
     const east = new THREE.Vector3(0, 1, 0).cross(normal).normalize();
     const north = normal.clone().cross(east).normalize();
     frames.push({ pos: pos0, q: qn, east, north, normal });
+    m4.compose(pos0, qn, s3.setScalar(1));
+    bases.setMatrixAt(ni, m4);
+    bases.setColorAt(ni, baseColors[ni]);
+    const flagPos = pos0.clone().addScaledVector(east, -0.045).addScaledVector(north, -0.043);
+    m4.compose(flagPos, qn, s3.setScalar(1));
+    poles.setMatrixAt(ni, m4);
+    flags.setMatrixAt(ni, m4);
+    flags.setColorAt(ni, roofColors[ni]);
     const r0 = rng(40 + ni);
     for (let i = 0; i < HOUSES; i++) {
       const a = (i / HOUSES) * Math.PI * 2 + r0() * 0.5;
-      const d = i === 0 ? 0 : 0.012 + r0() * 0.012;
+      const d = i === 0 ? 0 : 0.019 + r0() * 0.018;
       const p = pos0.clone().addScaledVector(east, Math.cos(a) * d).addScaledVector(north, Math.sin(a) * d);
       const qi = qn.clone().multiply(new THREE.Quaternion().setFromAxisAngle(up, r0() * 6.28));
-      const k = i === 0 ? 1.65 : 1.02 + r0() * 0.45;
+      const k = i === 0 ? 2.7 : 1.8 + r0() * 0.55;
       m4.compose(p, qi, s3.set(k, k, k));
       houseMesh.setMatrixAt(ni * HOUSES + i, m4);
       roofMesh.setMatrixAt(ni * HOUSES + i, m4);
       roofMesh.setColorAt(ni * HOUSES + i, roofColors[ni]);
     }
     landmark(ni, pos0, normal, qn);
-    const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.55 }));
+    const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.32 }));
     glow.position.copy(pos0.clone().addScaledVector(normal, 0.012));
-    glow.scale.setScalar(0.08);
+    glow.scale.setScalar(0.052);
     glows.push(glow);
     root.add(glow);
     // 選んだ集落の輪
@@ -418,7 +464,9 @@ export function buildGlobe(opts: { rich: boolean }) {
     root.add(eventRing);
   });
   roofMesh.instanceColor!.needsUpdate = true;
-  root.add(houseMesh, roofMesh, crates);
+  bases.instanceColor!.needsUpdate = true;
+  flags.instanceColor!.needsUpdate = true;
+  root.add(bases, poles, flags, houseMesh, roofMesh, crates);
   // 箱は在庫が変わった時だけ行列を差し替える。毎フレーム 120 個の Vector3 を作らない。
   const crateMatrices = frames.map((f) => Array.from({ length: CRATES }, (_, i) => {
     const layer = Math.floor(i / 6);
@@ -445,7 +493,7 @@ export function buildGlobe(opts: { rich: boolean }) {
     const pts = Array.from({ length: 97 }, (_, i) => arcPoint(a, b, i / 96, lift));
     return { a, b, lift, pts };
   });
-  const roadMat = new THREE.LineBasicMaterial({ color: '#e2c48f', transparent: true, opacity: 0.42, depthWrite: false });
+  const roadMat = new THREE.LineBasicMaterial({ color: '#e2c48f', transparent: true, opacity: 0.3, depthWrite: false });
   const roadHot = new THREE.LineBasicMaterial({ color: '#ffd9a0', transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending });
   const roads = arcs.map((arc) => {
     const g = new THREE.BufferGeometry().setFromPoints(arc.pts);
@@ -465,7 +513,7 @@ export function buildGlobe(opts: { rich: boolean }) {
     const g = new THREE.Group();
     const box = new THREE.Mesh(cargoGeo, cargoMat);
     const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.8 }));
-    glow.scale.setScalar(0.078);
+    glow.scale.setScalar(0.056);
     g.add(box, glow);
     g.visible = false;
     root.add(g);
@@ -486,11 +534,11 @@ export function buildGlobe(opts: { rich: boolean }) {
       }
       const sel = ni === selected;
       (rings[ni].material as THREE.MeshBasicMaterial).opacity = sel ? 0.32 + 0.1 * Math.sin(t * 3) : 0;
-      (glows[ni].material as THREE.SpriteMaterial).opacity = sel ? 0.52 : 0.36;
-      glows[ni].scale.setScalar(sel ? 0.065 : 0.08);
+      (glows[ni].material as THREE.SpriteMaterial).opacity = sel ? 0.45 : 0.25;
+      glows[ni].scale.setScalar(sel ? 0.06 : 0.052);
     });
     if (cratesChanged) crates.instanceMatrix.needsUpdate = true;
-    windmillRotors.forEach((rotor) => { rotor.rotation.y = t * 0.45; });
+    windmillRotors.forEach((rotor) => { rotor.rotation.z = t * 0.45; });
 
     // 出発と到着は、globeState の時刻から作られたイベントだけで光らせる。
     const eventAge = NATIONS.map(() => Infinity);
