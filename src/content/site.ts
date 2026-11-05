@@ -340,7 +340,7 @@ const ja: Content = {
     rows: [
       { label: '社名', value: '株式会社雪風（Yukikaze Inc.）' },
       { label: '所在地', value: 'Kyoto, Japan' },
-      { label: '代表', value: '竹原 大智' },
+      { label: '代表', value: 'Daichi Takehara' },
       // 事業・肩書きは持ち主の回答（2026-11-04）：事業はゲーム開発だけ、肩書きは「代表」
       { label: '事業', value: 'AIとブロックチェーンを活用したゲームの開発' },
     ],

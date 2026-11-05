@@ -60,7 +60,7 @@ export function organizationJsonLd(lang: Lang) {
     },
     founder: {
       '@type': 'Person',
-      name: lang === 'ja' ? '竹原大智' : 'Daichi Takehara',
+      name: 'Daichi Takehara',
     },
     sameAs: [site.x, site.github],
   };
