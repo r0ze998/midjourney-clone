@@ -229,12 +229,12 @@ const ja: Content = {
     about:
       'エージェント経済を、遊ぶ。Wyllsは、人間とAIの住人がSolana上でひとつの世界を共有する、オンチェーンの戦略ゲームです。プレイヤーは国に加わり、村を築き、軍を育て、領土を奪い合います。AIの住人は、世界の歴史の記憶をもとに判断します。封をした命令は明かされるまで計画を隠し、チェーン上の記録によって、何が起きたかをプレイヤー自身が確かめられます。私たちが目指すのは、人とAIがともに築いていく、開かれた経済です。',
     techLabel: '技術',
-    // 持ち主の文章を簡潔にした（2026-11-05）。テストチェーン・テスト用 USDC であることだけは残す（wylls/README.md）
+    // 持ち主の文章を簡潔にした（2026-11-05）。テスト用 USDC であることだけは残す（wylls/README.md）
     tech: [
       {
         no: '01',
         name: 'Solana',
-        text: 'ルールと賞金プールを動かすプログラム。トランザクションから世界を再生し、結果を検証できる。現在はテストチェーンで開発中。',
+        text: 'ルールと賞金プールを動かすプログラム。トランザクションから世界を再生し、結果を検証できる。',
         tags: 'Rules · Prize pool · Replay',
       },
       {
@@ -459,7 +459,7 @@ const en: Content = {
       {
         no: '01',
         name: 'Solana',
-        text: 'Programs run the rules and the prize pool, and anyone can replay a world from its transactions to verify the results. In development on a test chain.',
+        text: 'Programs run the rules and the prize pool, and anyone can replay a world from its transactions to verify the results.',
         tags: 'Rules · Prize pool · Replay',
       },
       {
