@@ -258,7 +258,7 @@ const ja: Content = {
       {
         no: '05',
         name: 'MagicBlock',
-        text: '最初の版で、ガス代のかからないターン処理に使用。',
+        text: 'すべてのターンを MagicBlock の Ephemeral Rollup で処理。',
         tags: 'First version · Ephemeral rollup',
       },
     ],
@@ -483,7 +483,7 @@ const en: Content = {
       {
         no: '05',
         name: 'MagicBlock',
-        text: 'Used in the first version for gas-free turns.',
+        text: 'Every turn is resolved on a MagicBlock Ephemeral Rollup.',
         tags: 'First version · Ephemeral rollup',
       },
     ],
