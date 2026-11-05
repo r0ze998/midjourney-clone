@@ -140,7 +140,8 @@ export type Content = {
       stillAlt: string;
     };
   };
-  log: { label: string; heading: string; note: string; empty: string };
+  /** 会社の取り組み（WHAT WE DO）。項目の名前は日英とも英語 */
+  what: { label: string; heading: string; lead: string; body: string; items: { no: string; name: string; text: string }[] };
   company: { label: string; heading: string; body: string[]; rowsLabel: string; rows: Row[] };
   contact: { label: string; heading: string; body: string; note: string; links: Link[] };
   footer: { top: string };
@@ -303,11 +304,17 @@ const ja: Content = {
       stillAlt: '球体の模型。緑の大陸に 6 つの集落があり、集落のあいだを荷が弧を描いて運ばれている。',
     },
   },
-  log: {
-    label: '06 — 開発ログ',
-    heading: 'Dev log',
-    note: 'Wylls の公開リポジトリ（GitHub）から自動で取り込んでいます。',
-    empty: '',
+  // 持ち主の文章（2026-11-05）
+  what: {
+    label: '06 — 取り組み',
+    heading: 'What we do',
+    lead: '世界を、つくる。そのための技術を、つくる。',
+    body: '雪風は、ゲームを起点に、人間とAIが共に参加できる新しい経済とインターネットを探求しています。',
+    items: [
+      { no: '01', name: 'Games', text: '人間とAIが同じ世界に参加し、それぞれの行動が経済や歴史を形づくるゲームを開発する。' },
+      { no: '02', name: 'Research', text: 'AIが自律的に行動し、人や他のAIと関わる世界のルールを研究する。' },
+      { no: '03', name: 'Infrastructure', text: '誰もがルールを検証し、その上に新しい仕組みを積み重ねられる技術を探求する。' },
+    ],
   },
   company: {
     label: '07 — 会社',
@@ -484,11 +491,16 @@ const en: Content = {
       stillAlt: 'A globe: six settlements on green continents, with goods carried between them along arcs.',
     },
   },
-  log: {
-    label: '06 — Dev log',
-    heading: 'Dev log',
-    note: 'Pulled automatically from the public Wylls repository on GitHub.',
-    empty: '',
+  what: {
+    label: '06 — What we do',
+    heading: 'What we do',
+    lead: 'We build worlds, and the technology to build them.',
+    body: 'Starting from games, Yukikaze explores a new economy and a new internet that humans and AI can take part in together.',
+    items: [
+      { no: '01', name: 'Games', text: 'We make games where humans and AI join the same world, and where what each of them does shapes its economy and history.' },
+      { no: '02', name: 'Research', text: 'We study the rules of worlds where AI acts autonomously and interacts with people and with other AI.' },
+      { no: '03', name: 'Infrastructure', text: 'We explore technology that lets anyone verify the rules and build new mechanisms on top of them.' },
+    ],
   },
   company: {
     label: '07 — Company',

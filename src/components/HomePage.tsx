@@ -9,7 +9,6 @@ import ScreenFrame from './ScreenFrame';
 import WorldGlobe from './WorldGlobe';
 import wyllsShot from '../assets/wylls-village.jpg';
 import { content, screenUi, site, type Lang } from '../content/site';
-import type { FeedItem } from '../lib/feed';
 import { organizationJsonLd } from '../lib/metadata';
 
 // 1 ページの構成。模型（WorldStage）は画面に固定した背景で、各セクションの data-scene に合わせて場面が移る。
@@ -48,10 +47,7 @@ function Paras({ items, className = '' }: { items: string[]; className?: string 
   );
 }
 
-const fmtDate = (iso: string, lang: Lang) =>
-  new Intl.DateTimeFormat(lang === 'ja' ? 'ja-JP' : 'en-GB', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'Asia/Tokyo' }).format(new Date(iso));
-
-export default function HomePage({ lang, feed }: { lang: Lang; feed: FeedItem[] }) {
+export default function HomePage({ lang }: { lang: Lang }) {
   const c = content[lang];
 
   return (
@@ -318,32 +314,35 @@ export default function HomePage({ lang, feed }: { lang: Lang; feed: FeedItem[] 
           </div>
         </section>
 
-        {/* 6. 開発ログ（取り込めないときは出さない） */}
-        {feed.length > 0 && (
-          <section id="log" data-scene="log" aria-labelledby="log-heading" className="relative">
-            <div className="relative mx-auto max-w-[1440px] bg-paper px-5 py-16 sm:px-8 lg:bg-transparent lg:px-12 lg:py-24">
-              <div className="lg:max-w-[40rem]">
-                <SectionLabel>{c.log.label}</SectionLabel>
-                <H2 id="log-heading">{c.log.heading}</H2>
-                <p className="mt-3 text-[0.8125rem] text-ink-3">{c.log.note}</p>
-                <ul className="mt-6">
-                  {feed.map((item) => (
-                    <li key={item.url}>
-                      <ExternalLink href={item.url} hint={c.externalHint} className="row-link">
-                        <time dateTime={item.date} className="w-[7.5rem] shrink-0 font-mono text-xs text-ink-3">
-                          {fmtDate(item.date, lang)}
-                        </time>
-                        <span className="text-[0.875rem]" lang="en">
-                          {item.title}
-                        </span>
-                      </ExternalLink>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+        {/* 6. 取り組み（WHAT WE DO） */}
+        <section id="what" data-scene="what" aria-labelledby="what-heading" className="relative">
+          <div className="relative mx-auto max-w-[1440px] bg-paper px-5 py-16 sm:px-8 lg:bg-transparent lg:px-12 lg:py-28">
+            <div className="lg:max-w-[40rem]">
+              <SectionLabel>{c.what.label}</SectionLabel>
+              <H2 id="what-heading" className="mb-6">
+                {c.what.heading}
+              </H2>
+              <p className="serif text-[1.25rem] leading-[1.6] md:text-[1.5rem]">{c.what.lead}</p>
+              <p className="mt-4 text-[0.9375rem] leading-[2] text-ink-2">{c.what.body}</p>
             </div>
-          </section>
-        )}
+            <ol className="mt-12 grid gap-px border border-rule bg-rule md:grid-cols-3">
+              {c.what.items.map((it) => (
+                <li key={it.no} className="group relative bg-paper/95 p-6 backdrop-blur-[2px] md:min-h-[17rem] md:p-8 lg:bg-card/85">
+                  {/* 四隅の角（Wylls の窓と同じ作法） */}
+                  <span aria-hidden="true" className="absolute -left-px -top-px h-3 w-3 border-l border-t border-signal" />
+                  <p className="flex items-baseline gap-3 font-mono text-[0.75rem] tracking-[0.14em] text-ink-3">
+                    <span className="text-signal">{it.no}</span>
+                    <span aria-hidden="true">/</span>
+                    <span lang="en" className="uppercase text-ink">
+                      {it.name}
+                    </span>
+                  </p>
+                  <p className="mt-6 text-[0.9375rem] leading-[2] text-ink-2 md:mt-10">{it.text}</p>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
 
         {/* 7. 会社・連絡先 */}
         <section data-scene="company" className="relative">

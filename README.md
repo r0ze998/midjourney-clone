@@ -40,7 +40,6 @@ src/
 │   ├── WorldGlobe.tsx     # 社名の項の球体（6 集落と物流）
 │   ├── ScreenFrame.tsx    # Wylls の画面を収める窓
 │   ├── CartVideo.tsx, ExternalLink.tsx
-├── lib/feed/              # 開発ログの取り込み（GitHub。X は後から足せる）
 ├── content/site.ts        # 掲載情報（ja / en）と模型の中の英語表示
 film/                      # X 投稿用の映像の台本と音（teardown の sfx）
 public/
