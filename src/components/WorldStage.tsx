@@ -357,11 +357,22 @@ export default function WorldStage({ stillSrc, stillAlt }: { stillSrc: string; s
         if (capture) {
           (window as unknown as { __ykCapture: unknown }).__ykCapture = {
             ready: () => canvas.dataset.ready === '1',
-            render: (t: number, at?: { ax: number; ay: number; layers?: Live['layers'] }) => {
+            render: (t: number, at?: { ax: number; ay: number; layers?: Live['layers']; cam?: { pos: number[]; target: number[]; turn?: number } }) => {
               const anchor = at ? { ax: at.ax, ay: at.ay } : anchorFor(size.w, 'hero');
               const tf = tourAt(t);
-              const live: Live = { ...tf, dim: 0, spin: 0, ...anchor, ...(at?.layers ? { layers: at.layers } : {}) };
-              paint(live, live, true, false);
+              const live: Live = { ...tf, dim: 0, spin: 0, ...anchor, ...(at?.layers ? { layers: at.layers } : {}), ...(at?.cam?.turn !== undefined ? { turn: at.cam.turn } : {}) };
+              paint(live, live, !at?.cam, false);
+              // 確認用：カメラを指定して撮り直す（部品を寄って見るため）
+              if (at?.cam) {
+                camera.clearViewOffset();
+                camera.position.set(at.cam.pos[0], at.cam.pos[1], at.cam.pos[2]);
+                camera.lookAt(at.cam.target[0], at.cam.target[1], at.cam.target[2]);
+                if (scene.fog instanceof THREE.Fog) {
+                  scene.fog.near = 30;
+                  scene.fog.far = 90;
+                }
+                renderer.render(scene, camera);
+              }
               const ls = state(live.turn);
               publish({ mode: 'tour', turn: live.turn, layer: live.layer, view: live.view, caption: live.caption, cursorTo: live.cursorTo, cursorPath: tf.cursorPath, readout: ls.readout, stocks: ls.stocks, still: false }, true);
             },

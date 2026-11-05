@@ -31,7 +31,7 @@ src/
 ├── model/                 # Wylls の世界の模型（描画以外は純粋な関数）
 │   ├── hex.ts  world.ts  state.ts  timeline.ts  tiers.ts  store.ts  globe.ts
 ├── model3d/               # three.js の組み立て・視点・計器（後から読み込む）
-│   ├── world3d.ts  camera.ts  console.ts  globe3d.ts
+│   ├── world3d.ts  props.ts  camera.ts  console.ts  globe3d.ts
 ├── components/
 │   ├── HomePage.tsx       # ページの構成（各セクションに data-scene）
 │   ├── WorldStage.tsx     # 画面に固定した模型。スクロールで場面が移る

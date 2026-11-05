@@ -20,6 +20,7 @@ import {
   type Terrain,
 } from '../model/world';
 import type { ModelState } from '../model/state';
+import * as P from './props';
 
 export const SQ3 = Math.sqrt(3);
 export const centerXZ = (q: number, r: number): [number, number] => [SQ3 * (q + r / 2), 1.5 * r];
@@ -87,7 +88,7 @@ export function groundAt(x: number, z: number): number {
 }
 
 export type Group = 'base' | 'logistics' | 'defense' | 'ai';
-type Tracked = { mat: THREE.Material & { color?: THREE.Color; opacity: number }; group: Group; base: THREE.Color | null; opacity: number };
+type Tracked = { mat: THREE.Material & { color?: THREE.Color; opacity: number; emissiveIntensity?: number }; group: Group; base: THREE.Color | null; opacity: number; ei: number | null };
 
 export type Look = {
   layers: { logistics: number; defense: number; ai: number };
@@ -223,7 +224,7 @@ export function buildWorld(opts: { rich: boolean }) {
   const tracked: Tracked[] = [];
   const track = <M extends THREE.Material>(mat: M, group: Group): M => {
     const m = mat as unknown as Tracked['mat'];
-    tracked.push({ mat: m, group, base: m.color ? m.color.clone() : null, opacity: m.opacity });
+    tracked.push({ mat: m, group, base: m.color ? m.color.clone() : null, opacity: m.opacity, ei: m.emissiveIntensity ?? null });
     return mat;
   };
   const rand = rng(998);
@@ -431,50 +432,193 @@ export function buildWorld(opts: { rich: boolean }) {
   place(new THREE.ConeGeometry(0.62, 1.05, 5, 1).translate(0, 0.52, 0), leaf(), peakSpots, { shadow: true });
   place(new THREE.ConeGeometry(0.22, 0.36, 5, 1).translate(0, 0.87, 0), track(new THREE.MeshStandardMaterial({ color: '#e7e9ee', roughness: 0.8, flatShading: true }), 'base'), peakSpots.map((p) => ({ ...p, c: new THREE.Color('#ffffff') })));
 
-  // ---- 村：家並み（屋根の色で人とAI）と柵の輪 ----
-  const houses: { x: number; y: number; z: number; s: number; rot: number; kind: Kind }[] = [];
+  // ---- 村 ----
+  // 人の村：漆喰と木の家、切妻屋根、灯った窓、広場・井戸・市場、町には石垣と門。
+  // AIの村：六角の住まいに紫に光る帯、中心の尖塔、受ける板とアンテナ。
+  // 家は道の出る向きと、在庫の箱を積む場所を空けて並べる。
+  type Place = { x: number; y: number; z: number; rot: number; s: number; sx?: number };
+  const placed = new Map<string, Place[]>();
+  const add = (key: string, p: Place) => {
+    if (!placed.has(key)) placed.set(key, []);
+    placed.get(key)!.push(p);
+  };
+  // 村から道が出る向き（ラジアン、x-z 平面）
+  const roadAngles = (hex: Hex) => {
+    const [cx, cz] = centerXZ(...hex);
+    const out: number[] = [];
+    for (const r of ROUTES) {
+      const pts = r.points.map(([x, y]) => from2D(x, y));
+      pts.forEach(([x, z], i) => {
+        if (Math.hypot(x - cx, z - cz) > 0.05) return;
+        for (const j of [i - 1, i + 1]) {
+          const q = pts[j];
+          if (q) out.push(Math.atan2(q[1] - cz, q[0] - cx));
+        }
+      });
+    }
+    return out;
+  };
+  const angDiff = (a: number, b: number) => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
+  const facing = (x: number, z: number, tx: number, tz: number) => Math.atan2(-(tz - z), tx - x); // +x を (tx, tz) に向ける
+  const CRATE_ANGLE = Math.atan2(0.48, 0.62);
+
   for (const s of SETTLEMENTS) {
     const [cx, cz] = centerXZ(...s.hex);
     const y = topY(...s.hex);
-    const n = s.size === 'city' ? 13 : s.size === 'town' ? 9 : 5;
     const r0 = rng(s.id.length * 131 + s.hex[0] * 17 + s.hex[1]);
-    for (let i = 0; i < n; i++) {
-      const a = (i / n) * Math.PI * 2 + r0() * 0.4;
-      const d = i === 0 ? 0 : 0.34 + r0() * (s.size === 'hamlet' ? 0.22 : 0.36);
-      houses.push({ x: cx + Math.cos(a) * d, y, z: cz + Math.sin(a) * d, s: (i === 0 ? 1.9 : 1.2 + r0() * 0.45) * (s.size === 'city' ? 1.1 : 1), rot: r0() * Math.PI, kind: s.kind });
+    const roadsOut = roadAngles(s.hex);
+    const free = (a: number, pad = 0.42) => roadsOut.every((ra) => angDiff(a, ra) > pad) && angDiff(a, CRATE_ANGLE) > 0.5;
+    // 環状に、空いている向きへ並べる
+    const ring = (n: number, rad: number, jitter: number, cb: (x: number, z: number, a: number, i: number) => void) => {
+      let i = 0;
+      for (let k = 0; k < n * 3 && i < n; k++) {
+        const a = (k / (n * 3)) * Math.PI * 2 + r0() * 0.15 + (s.hex[0] + s.hex[1]) * 0.7;
+        if (!free(a)) continue;
+        if (k % 3 !== 0) continue;
+        const rr = rad + (r0() - 0.5) * jitter;
+        cb(cx + Math.cos(a) * rr, cz + Math.sin(a) * rr, a, i++);
+      }
+    };
+    if (s.kind === 'human') {
+      const town = s.size !== 'hamlet';
+      // 広場と井戸
+      add('plaza', { x: cx, y, z: cz, rot: 0, s: town ? 1 : 0.7 });
+      add('well', { x: cx + 0.05, y: y + 0.012, z: cz - 0.04, rot: r0() * 6, s: 1.1 });
+      if (town) {
+        add('hall', { x: cx - 0.02, y: y + 0.012, z: cz + 0.2, rot: facing(cx, cz + 0.2, cx, cz), s: 1.05 });
+        add('stall-a', { x: cx + 0.18, y: y + 0.012, z: cz + 0.06, rot: facing(cx + 0.18, cz + 0.06, cx, cz), s: 1 });
+        add('stall-b', { x: cx - 0.17, y: y + 0.012, z: cz - 0.1, rot: facing(cx - 0.17, cz - 0.1, cx, cz), s: 1 });
+      }
+      // 家並み
+      const houseAngles: number[] = [];
+      ring(town ? 9 : 5, town ? 0.56 : 0.42, 0.12, (x, z, a, i) => {
+        houseAngles.push(a);
+        const kind = i % 4 === 2 ? 'longhouse' : 'cottage';
+        add(kind, { x, y, z, rot: facing(x, z, cx, cz) + (r0() - 0.5) * 0.3, s: 0.95 + r0() * 0.25 });
+      });
+      // 干し草と村人
+      ring(town ? 3 : 2, town ? 0.78 : 0.66, 0.06, (x, z) => add('hay', { x, y, z, rot: r0() * 6, s: 0.9 + r0() * 0.4 }));
+      for (let i = 0; i < (town ? 6 : 3); i++) {
+        const a = r0() * Math.PI * 2;
+        const d = 0.12 + r0() * 0.12;
+        add(i % 2 ? 'person-a' : 'person-b', { x: cx + Math.cos(a) * d, y: y + 0.012, z: cz + Math.sin(a) * d, rot: r0() * 6, s: 1.4 });
+      }
+      // 町の石垣：道の出る向きに門
+      if (town) {
+        const R = 0.84;
+        const STEPS = 36;
+        for (let k = 0; k < STEPS; k++) {
+          const a0 = (k / STEPS) * Math.PI * 2;
+          const a1 = ((k + 1) / STEPS) * Math.PI * 2;
+          const mid = (a0 + a1) / 2;
+          if (!roadsOut.every((ra) => angDiff(mid, ra) > 0.2)) continue;
+          const x0 = cx + Math.cos(a0) * R, z0 = cz + Math.sin(a0) * R;
+          const x1 = cx + Math.cos(a1) * R, z1 = cz + Math.sin(a1) * R;
+          add('wall', { x: (x0 + x1) / 2, y: groundAt((x0 + x1) / 2, (z0 + z1) / 2), z: (z0 + z1) / 2, rot: facing(x0, z0, x1, z1), s: 1, sx: Math.hypot(x1 - x0, z1 - z0) * 1.04 });
+        }
+        for (const ra of roadsOut)
+          for (const side of [-1, 1]) {
+            const a = ra + side * 0.24;
+            const x = cx + Math.cos(a) * R, z = cz + Math.sin(a) * R;
+            add('gate', { x, y: groundAt(x, z), z, rot: a, s: 1 });
+          }
+      }
+      // 風車（村ごとに一つ。羽根はターンで回る）
+      if (s.size === 'hamlet' || s.id === 'lamar') {
+        let wa = 0;
+        // 道からも家からもいちばん離れた向きに
+        let bestGap = -1;
+        for (let k = 0; k < 48; k++) {
+          const a = (k / 48) * Math.PI * 2;
+          if (!free(a, 0.6)) continue;
+          const gap = Math.min(...houseAngles.map((h) => angDiff(a, h)), ...roadsOut.map((r) => angDiff(a, r)));
+          if (gap > bestGap) {
+            bestGap = gap;
+            wa = a;
+          }
+        }
+        const rr = s.id === 'lamar' ? 1.25 : 0.8;
+        const x = cx + Math.cos(wa) * rr, z = cz + Math.sin(wa) * rr;
+        add('mill', { x, y: groundAt(x, z), z, rot: 0.6, s: 1.2 });
+      }
+    } else {
+      const city = s.size === 'city';
+      add('ai-plate', { x: cx, y, z: cz, rot: 0, s: city ? 1 : 0.72 });
+      if (city) add('spire', { x: cx, y: y + 0.012, z: cz, rot: 0, s: 1 });
+      ring(city ? 8 : 4, city ? 0.5 : 0.36, 0.1, (x, z, _a, i) => {
+        add(i % 3 === 0 ? 'pod-tall' : 'pod', { x, y, z, rot: r0() * 6, s: (city ? 1 : 0.95) + r0() * 0.2 });
+      });
+      if (!city) add('pod-tall', { x: cx, y: y + 0.012, z: cz, rot: 0.3, s: 1.05 });
+      ring(city ? 4 : 2, city ? 0.8 : 0.62, 0.06, (x, z) => add('panel', { x, y: groundAt(x, z), z, rot: r0() * 6, s: 1.2 }));
+      ring(city ? 2 : 1, city ? 0.72 : 0.55, 0.04, (x, z) => add('mast', { x, y: groundAt(x, z), z, rot: 0, s: 1.3 }));
     }
   }
-  const houseGeo = new THREE.BoxGeometry(0.17, 0.12, 0.13).translate(0, 0.06, 0);
-  const roofGeo = new THREE.ConeGeometry(0.135, 0.11, 4, 1).rotateY(Math.PI / 4).translate(0, 0.175, 0);
-  const wallMat = track(new THREE.MeshStandardMaterial({ color: PALETTE.wall, roughness: 0.85, flatShading: true, emissive: '#ffb25c', emissiveIntensity: 0.08 }), 'base');
-  const houseMesh = new THREE.InstancedMesh(houseGeo, wallMat, houses.length);
-  const roofHuman = track(new THREE.MeshStandardMaterial({ color: PALETTE.humanRoof, roughness: 0.7, flatShading: true }), 'base');
-  const roofAi = track(new THREE.MeshStandardMaterial({ color: PALETTE.aiRoof, roughness: 0.55, flatShading: true, emissive: PALETTE.ai, emissiveIntensity: 0.35 }), 'ai');
-  const hh = houses.filter((h) => h.kind === 'human');
-  const ha = houses.filter((h) => h.kind === 'ai');
-  const roofsH = new THREE.InstancedMesh(roofGeo, roofHuman, hh.length);
-  const roofsA = new THREE.InstancedMesh(roofGeo, roofAi, ha.length);
-  const q4 = new THREE.Quaternion();
-  const put = (mesh: THREE.InstancedMesh, i: number, h: (typeof houses)[number]) => {
-    q4.setFromAxisAngle(new THREE.Vector3(0, 1, 0), h.rot);
-    m4.compose(new THREE.Vector3(h.x, h.y, h.z), q4, new THREE.Vector3(h.s, h.s, h.s));
-    mesh.setMatrixAt(i, m4);
+
+  const propHuman = track(new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true, roughness: 0.86, flatShading: true }), 'base');
+  const propAi = track(new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true, roughness: 0.6, metalness: 0.08, flatShading: true }), 'ai');
+  const windowMat = track(new THREE.MeshStandardMaterial({ color: '#3a2a18', emissive: '#ffc37a', emissiveIntensity: 1.35, roughness: 1 }), 'base');
+  const aiGlowMat = track(new THREE.MeshStandardMaterial({ color: '#2a2147', emissive: PALETTE.ai, emissiveIntensity: 1.6, roughness: 1 }), 'ai');
+  const qy = new THREE.Quaternion();
+  const vy = new THREE.Vector3(0, 1, 0);
+  const instance = (key: string, geo: THREE.BufferGeometry, mat: THREE.Material, shadow = true) => {
+    const list = placed.get(key) ?? [];
+    if (!list.length) return null;
+    const mesh = new THREE.InstancedMesh(geo, mat, list.length);
+    list.forEach((p, i) => {
+      qy.setFromAxisAngle(vy, p.rot);
+      // 石垣は長さ（x）だけを区画に合わせ、高さと厚みは変えない
+      m4.compose(new THREE.Vector3(p.x, p.y, p.z), qy, new THREE.Vector3(p.sx ?? p.s, p.s, p.s));
+      mesh.setMatrixAt(i, m4);
+    });
+    mesh.castShadow = shadow;
+    mesh.receiveShadow = true;
+    root.add(mesh);
+    return mesh;
   };
-  houses.forEach((h, i) => put(houseMesh, i, h));
-  hh.forEach((h, i) => put(roofsH, i, h));
-  ha.forEach((h, i) => put(roofsA, i, h));
-  houseMesh.castShadow = roofsH.castShadow = roofsA.castShadow = true;
-  root.add(houseMesh, roofsH, roofsA);
-  for (const s of SETTLEMENTS) {
-    if (s.size === 'hamlet') continue;
-    const [cx, cz] = centerXZ(...s.hex);
-    const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(s.size === 'city' ? 0.86 : 0.78, 0.035, 4, 24),
-      track(new THREE.MeshStandardMaterial({ color: '#8b7d66', roughness: 1, flatShading: true }), 'base'),
-    );
-    ring.rotation.x = Math.PI / 2;
-    ring.position.set(cx, topY(...s.hex) + 0.03, cz);
-    root.add(ring);
+  instance('cottage', P.cottage(), propHuman);
+  instance('cottage', P.windowsOf('cottage'), windowMat, false);
+  instance('longhouse', P.longhouse(), propHuman);
+  instance('longhouse', P.windowsOf('longhouse'), windowMat, false);
+  instance('hall', P.hall(), propHuman);
+  instance('hall', P.windowsOf('hall'), windowMat, false);
+  instance('well', P.well(), propHuman);
+  instance('stall-a', P.stall('#c9573c'), propHuman);
+  instance('stall-b', P.stall('#d9c08a'), propHuman);
+  instance('hay', P.haystack(), propHuman);
+  instance('person-a', P.person('#5a6b8c'), propHuman, false);
+  instance('person-b', P.person('#8c5a4a'), propHuman, false);
+  instance('wall', P.wallSegment(), propHuman);
+  instance('gate', P.gatePost(), propHuman);
+  instance('plaza', P.merge([{ g: new THREE.CylinderGeometry(0.3, 0.32, 0.014, 10).translate(0, 0.007, 0), c: '#a49a86' }]), propHuman, false);
+  instance('mill', P.windmillBody(), propHuman);
+  const millBlades: THREE.Mesh[] = [];
+  for (const p of placed.get('mill') ?? []) {
+    const blades = new THREE.Mesh(P.windmillBlades(), propHuman);
+    const hub = new THREE.Vector3(0.09, 0.27, 0).applyAxisAngle(vy, p.rot).multiplyScalar(p.s);
+    blades.position.set(p.x + hub.x, p.y + hub.y, p.z + hub.z);
+    blades.rotation.set(0, p.rot, 0);
+    blades.scale.setScalar(p.s);
+    blades.castShadow = true;
+    millBlades.push(blades);
+    root.add(blades);
+  }
+  instance('pod', P.aiPod(false), propAi);
+  instance('pod', P.aiPodBand(false), aiGlowMat, false);
+  instance('pod-tall', P.aiPod(true), propAi);
+  instance('pod-tall', P.aiPodBand(true), aiGlowMat, false);
+  instance('spire', P.aiSpire(), propAi);
+  instance('spire', P.aiSpireCore(), aiGlowMat, false);
+  instance('panel', P.aiPanel(), propAi);
+  instance('mast', P.aiMast(), propAi);
+  instance('ai-plate', P.merge([{ g: new THREE.CylinderGeometry(0.36, 0.38, 0.016, 6).translate(0, 0.008, 0), c: '#34333f' }]), propAi, false);
+  instance('ai-plate', P.merge([{ g: new THREE.CylinderGeometry(0.385, 0.385, 0.006, 6, 1, true).translate(0, 0.016, 0), c: '#fff' }]), aiGlowMat, false);
+  // 空に浮かぶ輪（AIの都市の尖塔の上。ターンでゆっくり回る）
+  const halos: THREE.Mesh[] = [];
+  for (const p of placed.get('spire') ?? []) {
+    const halo = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.008, 4, 36).rotateX(Math.PI / 2), aiGlowMat);
+    halo.position.set(p.x, p.y + 0.78, p.z);
+    halos.push(halo);
+    root.add(halo);
   }
 
   // ---- 灯り（光の板）：人の村は暖かい灯、AIの村は紫の光 ----
@@ -548,85 +692,143 @@ export function buildWorld(opts: { rich: boolean }) {
   }
 
   // ---- 倉庫と、在庫の木箱（在庫がそのまま箱の数になる） ----
-  const depotMat = track(new THREE.MeshStandardMaterial({ color: '#a37d4f', roughness: 0.9, flatShading: true }), 'logistics');
-  const depotRoof = track(new THREE.MeshStandardMaterial({ color: '#6a4a2c', roughness: 0.9, flatShading: true }), 'logistics');
-  for (const d of DEPOTS) {
-    const [cx, cz] = centerXZ(...d.hex);
-    const y = topY(...d.hex);
-    const barn = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.36, 0.42).translate(0, 0.18, 0), depotMat);
-    const roof = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.3, 0.66, 3, 1).rotateZ(Math.PI / 2).rotateX(Math.PI / 6).translate(0, 0.46, 0), depotRoof);
-    barn.position.set(cx - 0.12, y, cz - 0.1);
-    roof.position.copy(barn.position);
-    barn.castShadow = roof.castShadow = true;
-    root.add(barn, roof);
+  const propDepot = track(new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true, roughness: 0.88, flatShading: true }), 'logistics');
+  {
+    const depotGeo = P.depot();
+    const barrelGeo = P.barrel();
+    for (const d of DEPOTS) {
+      const [cx, cz] = centerXZ(...d.hex);
+      const y = topY(...d.hex);
+      const g = new THREE.Group();
+      const barn = new THREE.Mesh(depotGeo, propDepot);
+      barn.castShadow = barn.receiveShadow = true;
+      g.add(barn);
+      [[-0.36, 0.26], [-0.3, 0.3], [-0.38, 0.33], [0.05, 0.3]].forEach(([x, z], i) => {
+        const b2 = new THREE.Mesh(barrelGeo, propDepot);
+        b2.position.set(x, 0, z);
+        b2.rotation.y = i;
+        b2.castShadow = true;
+        g.add(b2);
+      });
+      g.position.set(cx - 0.12, y, cz - 0.1);
+      // 箱を積む場所（+x, +z 側）に荷を積む台が向くよう、少し回す
+      g.rotation.y = 0.35;
+      root.add(g);
+    }
   }
   const CRATE_CAP = 18;
   const placesForCrates = [
     ...SETTLEMENTS.map((s) => ({ id: s.id, hex: s.hex, per: 55, dx: 0.62, dz: 0.48 })),
     ...DEPOTS.map((d) => ({ id: d.id, hex: d.hex, per: 25, dx: 0.3, dz: 0.22 })),
   ];
-  const crateMat = track(new THREE.MeshStandardMaterial({ color: '#b98a52', roughness: 0.85, flatShading: true }), 'logistics');
-  const crates = new THREE.InstancedMesh(new THREE.BoxGeometry(0.13, 0.13, 0.13).translate(0, 0.065, 0), crateMat, placesForCrates.length * CRATE_CAP);
+  const crateMat = track(new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true, roughness: 0.85, flatShading: true }), 'logistics');
+  // 木箱：板の継ぎ目が見えるよう、箱に細い帯を巻いた形
+  const crateGeo = P.merge([
+    { g: new THREE.BoxGeometry(0.09, 0.09, 0.09).translate(0, 0.045, 0), c: '#b98a52' },
+    { g: new THREE.BoxGeometry(0.094, 0.012, 0.094).translate(0, 0.02, 0), c: '#7a5636' },
+    { g: new THREE.BoxGeometry(0.094, 0.012, 0.094).translate(0, 0.07, 0), c: '#7a5636' },
+  ]);
+  const crates = new THREE.InstancedMesh(crateGeo, crateMat, placesForCrates.length * CRATE_CAP);
   crates.castShadow = true;
   root.add(crates);
   const crateSlot = (k: number): [number, number, number] => {
     const layer = Math.floor(k / 6);
     const j = k % 6;
-    return [(j % 3) * 0.145, layer * 0.135, Math.floor(j / 3) * 0.145];
+    return [(j % 3) * 0.1, layer * 0.092, Math.floor(j / 3) * 0.1];
   };
 
   // ---- 荷車 ----
-  const CS = 1.7; // 荷車は遠くからも読めるよう、実寸より大きく
-  const cartBody = new THREE.BoxGeometry(0.24 * CS, 0.08 * CS, 0.14 * CS).translate(0, 0.09 * CS, 0);
-  const cartLoad = new THREE.BoxGeometry(0.18 * CS, 0.09 * CS, 0.1 * CS).translate(0, 0.17 * CS, 0);
-  const wheelGeo = new THREE.CylinderGeometry(0.05 * CS, 0.05 * CS, 0.02 * CS, 10).rotateX(Math.PI / 2);
-  const oxGeo = new THREE.BoxGeometry(0.14 * CS, 0.09 * CS, 0.08 * CS).translate(0.22 * CS, 0.08 * CS, 0);
-  const ringGeo = new THREE.RingGeometry(0.34, 0.4, 28).rotateX(-Math.PI / 2);
-  const wheelMat = track(new THREE.MeshStandardMaterial({ color: '#2c2219', roughness: 1 }), 'logistics');
-  const oxMat = track(new THREE.MeshStandardMaterial({ color: '#7a5a3e', roughness: 1, flatShading: true }), 'logistics');
-  const carts = new Map<string, { g: THREE.Group; load: THREE.Mesh; loadMat: THREE.MeshStandardMaterial }>();
+  // 人の荷車：牛が引く四輪の荷馬車と御者。AIの荷車：動物も人もいない、自分で走る車。
+  // 荷は種類で形が違う（食料＝幌の下の袋、木材＝丸太、鉱石＝石）。車輪と牛の脚は、進んだ距離だけ動く。
+  const CS = 1.3; // 遠くからも読めるよう、実寸より大きく
+  const cartHuman = track(new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true, roughness: 0.88, flatShading: true }), 'logistics');
+  const cartAi = track(new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true, roughness: 0.55, metalness: 0.1, flatShading: true }), 'ai');
+  const roverGlowMat = track(new THREE.MeshStandardMaterial({ color: '#2a2147', emissive: PALETTE.ai, emissiveIntensity: 1.8, roughness: 1 }), 'ai');
+  const geos = {
+    bed: P.wagonBed(),
+    wheel: P.wheel(0.055, 0.02),
+    ox: P.oxBody(),
+    leg: P.oxLeg(),
+    driver: P.driver(),
+    cargo: { food: P.cargoOf('food'), wood: P.cargoOf('wood'), ore: P.cargoOf('ore') },
+    rover: P.rover(),
+    roverGlow: P.roverGlow(),
+    roverWheel: P.wheel(0.036, 0.03, P.COL.aiDark),
+    pod: { food: P.roverPod('food'), wood: P.roverPod('wood'), ore: P.roverPod('ore') },
+  };
+  const ringGeo = new THREE.RingGeometry(0.3, 0.35, 32).rotateX(-Math.PI / 2);
+  type Cart = { g: THREE.Group; load: THREE.Object3D; wheels: THREE.Mesh[]; legs: THREE.Mesh[]; ox: THREE.Mesh | null; r: number };
+  const carts = new Map<string, Cart>();
   for (const r of ROUTES) {
     const g = new THREE.Group();
     const ai = r.kind === 'ai';
-    const bodyMat = track(new THREE.MeshStandardMaterial({ color: PALETTE.wood, roughness: 0.9, flatShading: true }), ai ? 'ai' : 'logistics');
-    const loadMat = track(new THREE.MeshStandardMaterial({ color: PALETTE.cargo[r.cargo], roughness: 0.8, flatShading: true }), ai ? 'ai' : 'logistics') as THREE.MeshStandardMaterial;
-    const body = new THREE.Mesh(cartBody, bodyMat);
-    const load = new THREE.Mesh(cartLoad, loadMat);
-    const w1 = new THREE.Mesh(wheelGeo, wheelMat);
-    const w2 = new THREE.Mesh(wheelGeo, wheelMat);
-    w1.position.set(-0.05 * CS, 0.05 * CS, 0.08 * CS);
-    w2.position.set(-0.05 * CS, 0.05 * CS, -0.08 * CS);
-    const ox = new THREE.Mesh(oxGeo, oxMat);
-    g.add(body, load, w1, w2, ox);
-    if (ai) {
-      const ringMat = track(new THREE.MeshBasicMaterial({ color: PALETTE.ai, transparent: true, opacity: 0.9, side: THREE.DoubleSide, depthWrite: false }), 'ai');
+    const mat = ai ? cartAi : cartHuman;
+    const wheels: THREE.Mesh[] = [];
+    const legs: THREE.Mesh[] = [];
+    let load: THREE.Object3D;
+    let ox: THREE.Mesh | null = null;
+    if (!ai) {
+      g.add(new THREE.Mesh(geos.bed, mat));
+      for (const [x, z] of [[-0.11, 0.115], [-0.11, -0.115], [0.11, 0.115], [0.11, -0.115]]) {
+        const w = new THREE.Mesh(geos.wheel, mat);
+        w.position.set(x, 0.055, z);
+        wheels.push(w);
+        g.add(w);
+      }
+      ox = new THREE.Mesh(geos.ox, mat);
+      ox.position.set(0.42, 0.06, 0);
+      g.add(ox);
+      for (const [x, z] of [[0.36, 0.035], [0.36, -0.035], [0.5, 0.035], [0.5, -0.035]]) {
+        const leg = new THREE.Mesh(geos.leg, mat);
+        leg.position.set(x, 0.11, z);
+        legs.push(leg);
+        g.add(leg);
+      }
+      const drv = new THREE.Mesh(geos.driver, mat);
+      drv.position.set(0.12, 0.17, 0.03);
+      g.add(drv);
+      load = new THREE.Mesh(geos.cargo[r.cargo], mat);
+      g.add(load);
+    } else {
+      g.add(new THREE.Mesh(geos.rover, mat), new THREE.Mesh(geos.roverGlow, roverGlowMat));
+      for (const [x, z] of [[-0.12, 0.11], [-0.12, -0.11], [0.12, 0.11], [0.12, -0.11]]) {
+        const w = new THREE.Mesh(geos.roverWheel, mat);
+        w.position.set(x, 0.036, z);
+        wheels.push(w);
+        g.add(w);
+      }
+      load = new THREE.Mesh(geos.pod[r.cargo], mat);
+      g.add(load);
+      const ringMat = track(new THREE.MeshBasicMaterial({ color: PALETTE.ai, transparent: true, opacity: 0.85, side: THREE.DoubleSide, depthWrite: false }), 'ai');
       const ring = new THREE.Mesh(ringGeo, ringMat);
-      ring.position.y = 0.015;
+      ring.position.y = 0.012;
       g.add(ring);
     }
+    g.scale.setScalar(CS);
     g.traverse((o) => {
-      if ((o as THREE.Mesh).isMesh) (o as THREE.Mesh).castShadow = true;
+      if ((o as THREE.Mesh).isMesh && !((o as THREE.Mesh).material as THREE.Material).transparent) (o as THREE.Mesh).castShadow = true;
     });
-    carts.set(r.id, { g, load, loadMat });
+    carts.set(r.id, { g, load, wheels, legs, ox, r: (ai ? 0.036 : 0.055) * CS });
     root.add(g);
   }
 
   // ---- 見張り塔・視界・柵 ----
-  const stoneMat = track(new THREE.MeshStandardMaterial({ color: '#b9b2a3', roughness: 0.9, flatShading: true }), 'defense');
+  const stoneMat = track(new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true, roughness: 0.9, flatShading: true }), 'defense');
+  const poleMat = track(new THREE.MeshStandardMaterial({ color: '#6b5640', roughness: 0.9 }), 'defense');
+  const towerGeo = P.watchtower();
   for (const t of TOWERS) {
     const kind = settlement(t.by)!.kind;
     const [cx, cz] = centerXZ(...t.hex);
     const y = topY(...t.hex);
     const g = new THREE.Group();
-    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.6, 7).translate(0, 0.3, 0), stoneMat);
-    const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.11, 0.08, 7).translate(0, 0.64, 0), stoneMat);
+    const body = new THREE.Mesh(towerGeo, stoneMat);
+    body.castShadow = body.receiveShadow = true;
     const flagMat = track(new THREE.MeshBasicMaterial({ color: kind === 'ai' ? PALETTE.ai : PALETTE.human, side: THREE.DoubleSide }), 'defense');
-    const flag = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 0.09).translate(0.08, 0.82, 0), flagMat);
-    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.24).translate(0, 0.8, 0), stoneMat);
-    g.add(shaft, crown, flag, pole);
+    const flag = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 0.09).translate(0.08, 0.95, 0), flagMat);
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.007, 0.26).translate(0, 0.92, 0), poleMat);
+    g.add(body, flag, pole);
     g.position.set(cx + 0.45, y, cz - 0.2);
     g.scale.setScalar(1.5);
-    shaft.castShadow = true;
     root.add(g);
   }
   const domeFor = new Map<string, THREE.Mesh>();
@@ -745,6 +947,8 @@ export function buildWorld(opts: { rich: boolean }) {
       const k = emphasis(t.group, look) * dimK;
       if ((t.mat as THREE.Material).transparent) t.mat.opacity = t.opacity * k;
       if (t.base && t.mat.color && !(t.mat as THREE.Material).transparent) t.mat.color.copy(t.base).multiplyScalar(k);
+      // 光る窓や帯も、沈める・薄めるに合わせて暗くする
+      if (t.ei !== null) t.mat.emissiveIntensity = t.ei * k;
     }
     // 光の板
     for (const g of glows) {
@@ -779,6 +983,12 @@ export function buildWorld(opts: { rich: boolean }) {
     }
     crates.count = n;
     crates.instanceMatrix.needsUpdate = true;
+    // 風車の羽根と、AIの都市の輪（ターンで回る）
+    millBlades.forEach((b, i) => (b.rotation.x = st.turn * 0.9 + i));
+    halos.forEach((h, i) => {
+      h.rotation.y = st.turn * 0.25 + i;
+      h.position.y = topY(...SETTLEMENTS.find((x) => x.kind === 'ai' && x.size === 'city')!.hex) + 0.79 + Math.sin(st.turn * 0.6) * 0.02;
+    });
     // 荷車
     for (const c of st.carts) {
       const cart = carts.get(c.route)!;
@@ -789,6 +999,12 @@ export function buildWorld(opts: { rich: boolean }) {
       cart.g.position.set(x, groundAt(x, z), z);
       cart.g.rotation.set(0, heading, 0);
       cart.load.visible = c.loaded;
+      // 進んだ距離（向きに沿った位置）から、車輪の回転と牛の歩みを決める（前のフレームを使わない）
+      const along = x * dirV.x + z * dirV.z;
+      const spin = c.moving ? -along / cart.r : 0;
+      for (const w of cart.wheels) w.rotation.z = spin;
+      cart.legs.forEach((leg, i) => (leg.rotation.z = c.moving ? Math.sin(along * 9 + (i % 2 ? Math.PI : 0) + (i > 1 ? Math.PI / 2 : 0)) * 0.45 : 0));
+      if (cart.ox) cart.ox.position.y = 0.06 + (c.moving ? Math.abs(Math.sin(along * 9)) * 0.005 : 0);
     }
     // verified
     pulses.forEach((p) => (p.visible = false));
