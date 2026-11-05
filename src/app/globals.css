@@ -201,3 +201,46 @@
     transform: none;
   }
 }
+
+/* 球体の模型の札（模型のコールアウトと同じ形を小さく） */
+.yk-globe-tags > div {
+  will-change: transform;
+}
+.yk-g-dot {
+  position: absolute;
+  left: -3px;
+  top: -3px;
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: #ffd6a0;
+  box-shadow: 0 0 0 3px rgba(255, 214, 160, 0.16);
+}
+.yk-g-tag {
+  position: absolute;
+  left: 10px;
+  top: -22px;
+  border: 1px solid rgba(226, 196, 143, 0.55);
+  background: rgba(10, 15, 12, 0.86);
+  padding: 3px 7px;
+}
+.yk-g-tag b {
+  font-weight: 500;
+  color: var(--color-ink);
+}
+.yk-g-tag i {
+  font-style: normal;
+  color: #e2c48f;
+  margin-left: 4px;
+}
+.yk-globe-tags > div[data-sel='1'] .yk-g-tag {
+  border-color: var(--color-signal);
+}
+.yk-globe-tags > div[data-sel='1'] .yk-g-dot {
+  background: var(--color-signal);
+  box-shadow: 0 0 0 3px rgba(62, 240, 140, 0.2);
+}
+.yk-globe-tags > div[data-small='1'] .yk-g-name,
+.yk-globe-tags > div[data-small='1'] i {
+  display: none;
+}

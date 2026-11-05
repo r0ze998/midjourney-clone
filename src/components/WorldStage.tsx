@@ -110,6 +110,7 @@ export default function WorldStage({ stillSrc, stillAlt }: { stillSrc: string; s
         let frameCost = 0;
         let raf = 0;
         let frameNo = 0;
+        let frozen = false;
 
         const measure = () => {
           anchors = Array.from(document.querySelectorAll<HTMLElement>('[data-scene]')).map((el) => {
@@ -261,6 +262,9 @@ export default function WorldStage({ stillSrc, stillAlt }: { stillSrc: string; s
         const paint = (f: Frame, live: Live, heroVisible: boolean, parallax: boolean) => {
           const st = state(f.turn);
           world.update(st, { layers: f.layers, verify: f.verify, dim: f.dim, turn: f.turn });
+          // 沈め具合が 0.9 を超えた分は、盤そのものを透かして消す（社名の項で球体を前に出すため）
+          const fade = f.dim > 0.9 ? Math.max(0, 1 - (f.dim - 0.9) / 0.1) : 1;
+          if (canvas.style.opacity !== String(fade)) canvas.style.opacity = String(fade);
           const az = model.orbitAz + (parallax ? (pointer.x - 0.5) * 6 : 0);
           const pose = poseFor(f.views, st, size.w / size.h, az, f.spin);
           camera.position.copy(pose.pos);
@@ -302,6 +306,17 @@ export default function WorldStage({ stillSrc, stillAlt }: { stillSrc: string; s
           const live = liveFrame();
           const { frame: f, heroVisible } = sceneFrame(live);
           if (heroVisible && model.mode === 'tour' && !model.still) tourClock += dt;
+          // 社名の項で球体が出ている間は、沈めた盤を描かない（最後の絵がそのまま残る）。GPU を球体に回す
+          // ただし止める前に、沈めた今の場面を一度描く（前の場面の絵が残らないように）
+          if (model.globeActive && f.dim > 0.95) {
+            if (!frozen) {
+              paint(f, live, false, false);
+              frozen = true;
+            }
+            if (!model.still && document.visibilityState === 'visible') setTimeout(() => (raf = requestAnimationFrame(frame)), 120);
+            return;
+          }
+          frozen = false;
           const t0 = performance.now();
           const st = paint(f, live, heroVisible, tier === 2 && size.w >= 1024 && model.mode !== 'tour');
           const cost = performance.now() - t0;

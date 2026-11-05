@@ -64,6 +64,13 @@ export const screenUi = {
   video: { title: 'Model — ride a cart', meta: 'Exported from this site' },
 } as const;
 
+/** 球体の模型の中の表示（英語で固定） */
+export const globeUi = {
+  stored: 'Stored',
+  transit: 'In transit',
+  total: 'Total',
+} as const;
+
 type Link = { label: string; href: string; note: string };
 type Row = { label: string; value: string };
 
@@ -108,6 +115,14 @@ export type Content = {
     heading: string;
     body: string;
     quote: { text: string; source: string };
+    globe: {
+      label: string;
+      canvasLabel: string;
+      choose: string;
+      hint: string;
+      note: string;
+      stillAlt: string;
+    };
   };
   log: { label: string; heading: string; note: string; empty: string };
   company: { label: string; heading: string; rows: Row[] };
@@ -224,6 +239,15 @@ const ja: Content = {
       // 旧訳の「100%世界をうまく利用できる」は原文の「人類の 100% のために世界が機能する」とずれていたので訳し直した
       text: '生態系を損なうことなく、誰の不利益にもならず、自発的な協力によって、できるかぎり短い時間で、世界を人類の100%のために機能させる。',
       source: 'R・バックミンスター・フラー「ワールド・ゲーム」の目的（雪風訳）',
+    },
+    // 球体の模型の文言。模型の中（集落名・数の札）は英語で、site.ts の globeUi
+    globe: {
+      label: 'ひとつの世界と、6 つの集落',
+      canvasLabel: '回せる球体の模型。6 つの集落と、集落をめぐる荷の流れ。ドラッグまたは矢印キーで回せます。',
+      choose: '集落を見る',
+      hint: 'ドラッグで回せます。しばらく触らないと、自動で回ります。',
+      note: 'ワールド・ゲームの考え方を描いた模式図です。地形・集落・物流は、実際の地理や Wylls のゲーム内容ではありません。',
+      stillAlt: '球体の模型。緑の大陸に 6 つの集落があり、集落のあいだを荷が弧を描いて運ばれている。',
     },
   },
   log: {
@@ -358,6 +382,14 @@ const en: Content = {
     quote: {
       text: 'Make the world work, for 100% of humanity, in the shortest possible time, through spontaneous cooperation, without ecological offense or the disadvantage of anyone.',
       source: 'R. Buckminster Fuller, on the aim of the World Game',
+    },
+    globe: {
+      label: 'One world, six settlements',
+      canvasLabel: 'A globe you can turn: six settlements and the goods that travel between them. Drag, or use the arrow keys.',
+      choose: 'Go to settlement',
+      hint: 'Drag to turn it. Left alone, it turns by itself.',
+      note: 'A schematic of the World Game idea. The land, settlements and logistics are not real geography and not Wylls game content.',
+      stillAlt: 'A globe: six settlements on green continents, with goods carried between them along arcs.',
     },
   },
   log: {

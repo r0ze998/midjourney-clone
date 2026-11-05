@@ -133,7 +133,8 @@ export const SCENES: Record<Exclude<SceneKey, 'hero'>, Scene> = {
   // 引いて沈め、実際の画面を前に出す
   wylls: scene('overview', 'none', 84, { dim: 0.6 }),
   // 真上から。国境がすべて一枚に収まり、時間とともに広がる
-  name: scene('borders', 'defense', 100, { layers: { logistics: 0, defense: 0.6, ai: 0 } }),
+  // 社名の項は球体の模型が主役。後ろの盤は沈めて、描くのも止める（WorldStage が model.globeActive を見る）
+  name: scene('overview', 'none', 100, { dim: 0.98, spin: 30 }),
   log: scene('overview', 'none', 116, { dim: 0.75, spin: 40 }),
   company: scene('overview', 'none', 120, { dim: 0.93, spin: 60 }),
 };

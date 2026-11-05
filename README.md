@@ -29,14 +29,16 @@ src/
 │   ├── fonts.ts           # Zen Old Mincho / Geist Mono（本文は端末の書体）
 │   └── globals.css        # 色・書体のトークン
 ├── model/                 # Wylls の世界の模型（描画以外は純粋な関数）
-│   ├── hex.ts  world.ts  state.ts  timeline.ts  tiers.ts  store.ts
+│   ├── hex.ts  world.ts  state.ts  timeline.ts  tiers.ts  store.ts  globe.ts
 ├── model3d/               # three.js の組み立て・視点・計器（後から読み込む）
-│   ├── world3d.ts  camera.ts  console.ts
+│   ├── world3d.ts  camera.ts  console.ts  globe3d.ts
 ├── components/
 │   ├── HomePage.tsx       # ページの構成（各セクションに data-scene）
 │   ├── WorldStage.tsx     # 画面に固定した模型。スクロールで場面が移る
 │   ├── ModelControls.tsx  # スライダー・層のボタン・読み値・自動ツアーのカーソル
 │   ├── Rain.tsx           # 背景の文字の雨
+│   ├── WorldGlobe.tsx     # 社名の項の球体（6 集落と物流）
+│   ├── ScreenFrame.tsx    # Wylls の画面を収める窓
 │   ├── CartVideo.tsx, ExternalLink.tsx
 ├── lib/feed/              # 開発ログの取り込み（GitHub。X は後から足せる）
 ├── content/site.ts        # 掲載情報（ja / en）と模型の中の英語表示

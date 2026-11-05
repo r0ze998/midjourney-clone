@@ -35,6 +35,8 @@ export const model = {
   tourTurn: TOUR_START_TURN,
   lastInput: 0,
   still: false,
+  /** 社名の項の球体が画面に出ているか（出ている間、後ろの盤の描画を止める） */
+  globeActive: false,
   snapshot: {
     mode: 'tour',
     turn: 0,

@@ -6,6 +6,7 @@ import ModelControls, { ModelConsole, ModelReadout, ScrubArea } from './ModelCon
 import ExternalLink from './ExternalLink';
 import CartVideo from './CartVideo';
 import ScreenFrame from './ScreenFrame';
+import WorldGlobe from './WorldGlobe';
 import wyllsShot from '../assets/wylls-village.jpg';
 import { content, screenUi, site, type Lang } from '../content/site';
 import type { FeedItem } from '../lib/feed';
@@ -107,6 +108,8 @@ export default function HomePage({ lang, feed }: { lang: Lang; feed: FeedItem[] 
                   .map((line, i) => (
                     <span key={i} className="block">
                       {line}
+                      {/* 読み上げ・検索で語がつながらないように、行の間に空白を残す */}
+                      {i === 0 ? ' ' : ''}
                     </span>
                   ))}
               </h1>
@@ -239,9 +242,9 @@ export default function HomePage({ lang, feed }: { lang: Lang; feed: FeedItem[] 
 
         {/* 4. 社名とワールド・ゲーム */}
         <section id="origin" data-scene="name" aria-labelledby="origin-heading" className="relative">
-          <div aria-hidden="true" className="over-model absolute inset-y-0 left-0 hidden w-[56%] lg:block" />
-          <div className="relative mx-auto max-w-[1440px] lg:flex lg:min-h-[96svh] lg:items-center lg:px-12">
-            <Over className="lg:max-w-[30rem]">
+          <div aria-hidden="true" className="over-model absolute inset-y-0 left-0 hidden w-[46%] lg:block" />
+          <div className="relative mx-auto max-w-[1440px] lg:grid lg:min-h-[100svh] lg:grid-cols-[minmax(0,30rem)_minmax(0,1fr)] lg:items-center lg:gap-12 lg:px-12 lg:py-20">
+            <Over window={false} className="lg:max-w-[30rem]">
               <SectionLabel>{c.origin.label}</SectionLabel>
               <h2 id="origin-heading" className="serif text-[1.75rem] leading-[1.35] md:text-[2.25rem]">
                 {c.origin.heading}
@@ -254,6 +257,10 @@ export default function HomePage({ lang, feed }: { lang: Lang; feed: FeedItem[] 
               </figure>
               <p className="mt-8 text-[0.9375rem] leading-[2] text-ink-2">{c.origin.body}</p>
             </Over>
+            {/* 球体の模型：スマホでは文章の下、デスクトップでは右 */}
+            <div className="bg-paper px-5 pb-12 sm:px-8 lg:bg-transparent lg:px-0 lg:pb-0">
+              <WorldGlobe ui={c.origin.globe} />
+            </div>
           </div>
         </section>
 
