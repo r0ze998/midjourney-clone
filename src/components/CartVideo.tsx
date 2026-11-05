@@ -56,7 +56,7 @@ export default function CartVideo({ caption, play, pause, bare = false }: { capt
           {playing ? pause : play}
         </button>
       </div>
-      <figcaption className={bare ? 'sr-only' : 'mt-3 text-[0.75rem] leading-relaxed text-ink-3'}>{caption}</figcaption>
+      {!bare && <figcaption className="mt-3 text-[0.75rem] leading-relaxed text-ink-3">{caption}</figcaption>}
     </figure>
   );
 }

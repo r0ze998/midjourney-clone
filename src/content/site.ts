@@ -114,7 +114,11 @@ export type Content = {
     heading: string;
     oneLiner: string;
     body: string[];
-    facts: Row[];
+    /** 説明（状態の行に代えて） */
+    about: string;
+    techLabel: string;
+    /** 使っている技術。名前とタグは日英とも英語 */
+    tech: { no: string; name: string; text: string; tags: string }[];
     links: Link[];
     shot: { alt: string; caption: string };
     video: { caption: string; play: string; pause: string };
@@ -150,7 +154,7 @@ const ja: Content = {
   meta: {
     title: '株式会社雪風 | Yukikaze Inc.',
     description:
-      '株式会社雪風は、京都を拠点に、ブロックチェーンを用いたプロダクトを開発する会社です。経済とインターネットを再構築し、誰もが参加できる新しい経済のあり方を、ゲームから探っています。現在は戦略ゲーム「Wylls」を開発しています。',
+      '株式会社雪風は、京都を拠点に、AIとブロックチェーンを使ったゲームスタジオです。経済とインターネットの仕組みそのものを書き換えることを目指し、人間とAIが同じ世界で生きる経済圏を、戦略ゲーム「Wylls」のなかで動かしています。',
     ogAlt: '株式会社雪風 — Make the world work.',
   },
   name: '株式会社雪風',
@@ -197,8 +201,8 @@ const ja: Content = {
     heading: 'Why games',
     parts: [
       [
-        'ゲームの中には、生産、交換、希少性、協力、競争といった、経済の基本的な働きがあります。',
-        'ルールが変われば、人々の行動も変わる。一人の選択がほかの誰かに影響し、その積み重ねが世界全体を変えていきます。',
+        '新しい経済の仕組みは、実際にルールを定め、公開された環境に人間とAIが共存し、何が起きるかを観測する必要があります。',
+        'ブロックチェーンはすべての履歴を改ざんできない形で刻み、AIは自律的なプレイヤーとして世界に参加する。雪風にとってゲームとは、娯楽であると同時に、次の社会のルールを最小単位で実証するための箱庭です。',
       ],
       [
         '私たちはゲームを、人々が実際に意思決定し、その結果を体験できる場所だと考えています。',
@@ -224,13 +228,42 @@ const ja: Content = {
       '村を育て、資源を運び、国の未来を考える。プレイヤーとAIエージェントは、同じ世界の中でそれぞれの目的を持ち、交易し、協力し、ときには争います。',
       'ある村の生産が別の村を支え、一つの取引が国を越える物流につながる。人間とAIの一つひとつの選択が積み重なり、世界の歴史と経済を形づくっていきます。',
     ],
-    // 出典: wylls/README.md（2026-10-26 の状態）, research/TECH_LANDSCAPE_2026.md
-    // 本文はゲームの内容の説明。いまどこまで動いているかは、ここに分けて書く
-    facts: [
-      { label: '状態', value: '開発中・一般公開前。村・6 つの国・荷の輸送・襲撃・AI の住人は、ローカルのテスト用チェーンで動作を確認しています。市場などの交易の仕組みは、まだ設計の段階です' },
-      { label: 'ブロックチェーン', value: 'Solana' },
-      // 出典: wylls/README.md（Rust のワークスペース、frontier-wasm、Gemma 4 を llama.cpp で、drand の時間で開く封）
-      { label: '技術', value: 'Rust（チェーン上のプログラムとルール）、WebAssembly（ブラウザでのルールの再計算）、ローカルで動くAIモデル（Gemma 4）、drand（時間がたつと開く封）' },
+    // 持ち主の文章（英語）を訳した（2026-11-05）
+    about:
+      'エージェント経済を、遊ぶ。Wyllsは、人間とAIの住人がSolana上でひとつの世界を共有する、オンチェーンの戦略ゲームです。プレイヤーは国に加わり、村を築き、軍を育て、領土を奪い合います。AIの住人は、世界の歴史の記憶をもとに判断します。封をした命令は明かされるまで計画を隠し、チェーン上の記録によって、何が起きたかをプレイヤー自身が確かめられます。私たちが目指すのは、人とAIがともに築いていく、開かれた経済です。',
+    techLabel: '技術',
+    // 持ち主の文章（英語）を訳した。wylls/README.md の状態の表と照合（2026-11-05）
+    tech: [
+      {
+        no: '01',
+        name: 'Solana',
+        text: 'ルールと賞金プールは Solana のプログラムです。参加、すべての戦闘・隊商・投票、結果と支払いをプログラムが決め、私たちの検証ツールはトランザクションから世界を再生できます。今のゲームはローカルの Solana 互換テストチェーンで動いており、devnet や mainnet にはまだ出ていません。',
+        tags: 'Rules · Prize pool · Replay',
+      },
+      {
+        no: '02',
+        name: 'x402',
+        text: 'プレイヤーは参加費を支払い、x402 を通じて 1 回のトランザクションで参加します（テストチェーンではテスト用の USDC）。devnet で動いた最初の版では、AIエージェントも同じ方法で自分の参加費を払いました。',
+        tags: 'Entry over HTTP',
+      },
+      {
+        no: '03',
+        name: 'AI citizens',
+        text: 'AIの住人は、人と同じ命令・費用・制限で動きます。コードが打てる手を挙げ、ローカルのモデルが一つを選び、コードがそれを確かめます。今のルールでは、ローカルのテストチェーンで短い実行を 2 回行いました。',
+        tags: 'Same rules · Same costs · Same limits',
+      },
+      {
+        no: '04',
+        name: 'USDC',
+        text: '参加費は賞金プールになり、結果と支払いはプログラムが決めます。今は価値のないテスト用の USDC だけです。本物の USDC は、法的な確認の前には予定していません。',
+        tags: 'Prize pool · Test USDC only',
+      },
+      {
+        no: '05',
+        name: 'MagicBlock',
+        text: '最初の版の devnet シーズンでは、すべてのターンを MagicBlock の Ephemeral Rollup で処理しました。プレイヤーはガス代を払わず（ゲートウェイが手数料を負担）、署名は参加と受け取りのときだけでした。今のゲームでは使っていません。',
+        tags: 'First version · Ephemeral rollup',
+      },
     ],
     links: [
       { label: '紹介サイト', href: site.wylls, note: 'wylls-site.vercel.app' },
@@ -270,8 +303,8 @@ const ja: Content = {
     // 構想。組み合わせの土台は設計の段階（wylls/docs/design/redesign/27-design-v1.ja.md の 1 章）
     body: [
       'Wyllsが目指すのは、運営が用意した遊びを体験するだけの世界ではありません。',
-      'ブロックチェーン上でルールや状態を共有することで、プレイヤーや開発者、AIエージェントが、同じ世界を土台に新しい仕組みを組み合わせられるようにする。',
-      'たとえば、村どうしの取引を支える仕組みや、資源の流れを読み解くツール、独自の判断で行動するAI。誰かがつくったものを、別の誰かが使い、組み合わせ、さらに発展させていく。',
+      'ゲームの中に、現実的な経済の計算システムを構築する。生産、在庫、輸送、取引をひとつのルールで計算し、ブロックチェーン上に、誰もが確かめられる形で記録する。',
+      'その共有されたルールと状態を土台に、プレイヤーや開発者、AIエージェントが新しい仕組みを組み合わせられるようにする。たとえば、村どうしの取引を支える仕組みや、資源の流れを読み解くツール、独自の判断で行動するAI。誰かがつくったものを、別の誰かが使い、組み合わせ、さらに発展させていく。',
       '世界を動かすのは、開発者だけではない。参加者それぞれの創造が、世界の可能性を広げていく。Wyllsは、そんな開かれた世界を目指しています。',
     ],
   },
@@ -319,8 +352,9 @@ const ja: Content = {
     label: '07 — 会社',
     heading: 'Yukikaze',
     body: [
-      '株式会社雪風は、京都を拠点に、ブロックチェーンを用いたプロダクトを開発する会社です。',
-      '経済とインターネットを再構築し、より多くの人が自分の意思で参加できる経済を目指しています。現在はWyllsを中心に、人間とAIが共有する世界と、そこで生まれるルールや関係の開発に取り組んでいます。',
+      // 持ち主の文章（2026-11-05）
+      '京都を拠点に、AIとブロックチェーンを使ったゲームスタジオです。',
+      '私たちが目指すのは、経済とインターネットの仕組みそのものを書き換えること。人間とAIが同じ世界で生きる経済圏を設計し、まだ見ぬ社会のルールをゲームのなかで動かしています。',
     ],
     rowsLabel: '会社概要',
     rows: [
@@ -347,7 +381,7 @@ const en: Content = {
   meta: {
     title: 'Yukikaze Inc. | 株式会社雪風',
     description:
-      'Yukikaze Inc. is a Kyoto-based company building products with blockchain technology. We are rebuilding the economy and the internet, exploring through games a new kind of economy anyone can join. Our current project is Wylls, a strategy game.',
+      'Yukikaze Inc. is a Kyoto-based game studio working with AI and blockchains. We aim to rewrite how the economy and the internet work, and we run an economy where humans and AI live in the same world inside our strategy game, Wylls.',
     ogAlt: 'Yukikaze Inc. — Make the world work.',
   },
   name: 'Yukikaze Inc.',
@@ -391,8 +425,8 @@ const en: Content = {
     heading: 'Why games',
     parts: [
       [
-        'Games already contain the basic workings of an economy: production, exchange, scarcity, cooperation and competition.',
-        'Change the rules, and people behave differently. One person’s choice affects someone else, and those choices add up until they change the whole world.',
+        'A new economic system has to be tried for real: set the rules, let humans and AI live together in an open environment, and watch what happens.',
+        'The blockchain records every event in a form no one can tamper with, and AI joins the world as an autonomous player. For Yukikaze, a game is entertainment, and also a miniature world for testing the rules of the next society at the smallest scale.',
       ],
       [
         'We see games as places where people make real decisions and live with the results.',
@@ -418,10 +452,40 @@ const en: Content = {
       'Grow your village, move resources, and think about your nation’s future. Players and AI agents each pursue their own goals in the same world: trading, cooperating and, at times, fighting.',
       'One village’s output supports another, and a single trade turns into logistics that cross national borders. Choice by choice, humans and AI shape the world’s history and its economy.',
     ],
-    facts: [
-      { label: 'Status', value: 'In development, not yet public. Villages, six nations, moving goods, raids and AI citizens run on local test chains. Markets and other trading systems are still at the design stage.' },
-      { label: 'Blockchain', value: 'Solana' },
-      { label: 'Technology', value: 'Rust (on-chain program and rules), WebAssembly (re-checking the rules in the browser), a locally run AI model (Gemma 4), drand (seals that open after a set time)' },
+    about:
+      'Play the agent economy. Wylls is an onchain strategy game where humans and AI citizens share one world on Solana. Players join nations, build villages, raise armies, and conquer territory. AI citizens use memories of the world’s history to make decisions. Sealed orders keep plans hidden until they are revealed, while onchain records let players verify what happened. Our goal is an open economy that people and AI can build together.',
+    techLabel: 'Technology',
+    tech: [
+      {
+        no: '01',
+        name: 'Solana',
+        text: 'The rules and the prize pool are Solana programs: joining, every battle, caravan and vote, the result and the payout are decided by the program, and our verifier replays a world from its transactions. The current game runs on a local Solana-compatible test chain; it is not on devnet or mainnet yet.',
+        tags: 'Rules · Prize pool · Replay',
+      },
+      {
+        no: '02',
+        name: 'x402',
+        text: 'A player pays the entry fee and joins in one transaction over x402 (test USDC on the test chain). In the first version on devnet, an AI agent paid its own way in the same manner.',
+        tags: 'Entry over HTTP',
+      },
+      {
+        no: '03',
+        name: 'AI citizens',
+        text: 'AI citizens use the same instructions, costs and limits as people: the code lists legal moves, a local model picks one, the code checks it. Under the current rules they have played two short runs on a local test chain.',
+        tags: 'Same rules · Same costs · Same limits',
+      },
+      {
+        no: '04',
+        name: 'USDC',
+        text: 'Entry fees form a prize pool, and the program decides the result and the payout. Today only test USDC with no value; live USDC is not planned before a legal review.',
+        tags: 'Prize pool · Test USDC only',
+      },
+      {
+        no: '05',
+        name: 'MagicBlock',
+        text: 'In the first version’s devnet season, every turn was resolved on a MagicBlock Ephemeral Rollup. Players paid no gas: the gateway covered the fees, and they signed only to enter and to claim. The current game does not use it.',
+        tags: 'First version · Ephemeral rollup',
+      },
     ],
     links: [
       { label: 'Project site', href: site.wylls, note: 'wylls-site.vercel.app' },
@@ -458,8 +522,8 @@ const en: Content = {
     heading: 'A world to build on',
     body: [
       'Wylls isn’t meant to be a world where you only play what the operator has prepared.',
-      'By sharing rules and state on a blockchain, we want players, developers and AI agents to be able to combine new mechanisms on top of the same world.',
-      'Think of a system that supports trade between villages, a tool that reads the flow of resources, or an AI that acts on its own judgment. What one person builds, another can use, combine and take further.',
+      'We want to build a realistic system for computing an economy inside a game: production, stock, transport and trade, all calculated under one set of rules and recorded on a blockchain where anyone can check them.',
+      'On top of those shared rules and state, players, developers and AI agents can combine new mechanisms. Think of a system that supports trade between villages, a tool that reads the flow of resources, or an AI that acts on its own judgment. What one person builds, another can use, combine and take further.',
       'Developers aren’t the only ones who move the world. Every participant’s creativity widens what it can become. That open world is what Wylls is aiming for.',
     ],
   },
@@ -503,8 +567,8 @@ const en: Content = {
     label: '07 — Company',
     heading: 'Yukikaze',
     body: [
-      'Yukikaze Inc. is a Kyoto-based company that develops products using blockchain technology.',
-      'We aim to rebuild the economy and the internet, toward an economy more people can take part in by their own choice. Today our work centers on Wylls: a world shared by humans and AI, and the rules and relationships that emerge within it.',
+      'A Kyoto-based game studio working with AI and blockchains.',
+      'What we are after is rewriting how the economy and the internet themselves work. We design economies where humans and AI live in the same world, and we run the rules of a society that doesn’t exist yet inside our games.',
     ],
     rowsLabel: 'Company details',
     rows: [

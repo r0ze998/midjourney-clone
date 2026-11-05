@@ -217,22 +217,32 @@ export default function HomePage({ lang }: { lang: Lang }) {
                     </ScreenFrame>
                   </div>
                 </div>
-                <figcaption className="mt-4 max-w-[46rem] text-[0.75rem] leading-relaxed text-ink-3">
-                  {c.wylls.shot.caption}
-                  <br />
-                  {c.wylls.video.caption}
-                </figcaption>
               </figure>
 
-              <div className="mt-10 grid gap-8 md:grid-cols-2">
-                <dl>
-                  {c.wylls.facts.map(({ label, value }) => (
-                    <div key={label} className="grid grid-cols-[7.5rem_1fr] gap-3 border-t border-rule py-3 text-[0.875rem]">
-                      <dt className="label pt-[0.15rem]">{label}</dt>
-                      <dd className="text-ink-2">{value}</dd>
+              <p className="mt-10 max-w-[46rem] text-[0.9375rem] leading-[2] text-ink-2">{c.wylls.about}</p>
+
+              {/* 使っている技術 */}
+              <h3 className="label mb-2 mt-12">{c.wylls.techLabel}</h3>
+              <ol>
+                {c.wylls.tech.map((t) => (
+                  <li key={t.no} className="grid gap-x-6 gap-y-2 border-t border-rule py-5 md:grid-cols-[11rem_1fr]">
+                    <p className="flex items-baseline gap-3">
+                      <span className="font-mono text-[0.75rem] text-signal">{t.no}</span>
+                      <span lang="en" className="font-display text-[1.375rem] font-extrabold uppercase leading-none tracking-[0.01em] [font-variation-settings:'opsz'_72]">
+                        {t.name}
+                      </span>
+                    </p>
+                    <div>
+                      <p className="text-[0.875rem] leading-[1.95] text-ink-2">{t.text}</p>
+                      <p lang="en" className="mt-2 font-mono text-[0.6875rem] uppercase tracking-[0.12em] text-ink-3">
+                        {t.tags}
+                      </p>
                     </div>
-                  ))}
-                </dl>
+                  </li>
+                ))}
+              </ol>
+
+              <div className="mt-10">
                 <ul>
                   {c.wylls.links.map(({ label, href, note }) => (
                     <li key={href}>
