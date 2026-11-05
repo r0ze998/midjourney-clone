@@ -20,7 +20,7 @@ const ease = (k: number) => 1 - Math.pow(1 - k, 3);
 
 /**
  * 「ワールド・ゲーム」の球体の模型。画面に近づいたときだけ three.js を読み込み、見えている間だけ描く。
- * 自動でゆっくり回り、ドラッグ（スマホは横だけ。縦はページのスクロール）や集落のボタンで操作を渡す。
+ * 自動でゆっくり回り、ドラッグ（スマホは横だけ。縦はページのスクロール）や回転ボタンで操作を渡す。
  * 25 秒触らなければ自動に戻る（上の模型と同じ規則）。動きを減らす設定では止めた絵で、操作したときだけ描き直す。
  */
 export default function WorldGlobe({ ui }: { ui: Ui }) {
@@ -34,7 +34,6 @@ export default function WorldGlobe({ ui }: { ui: Ui }) {
   const [motionAvailable, setMotionAvailable] = useState(false);
   const [readout, setReadout] = useState(() => globeState(GLOBE_START));
   const api = useRef<{
-    focus: (i: number) => void;
     rotate: (direction: -1 | 1) => void;
     overview: () => void;
     toggleTour: () => void;
@@ -205,7 +204,7 @@ export default function WorldGlobe({ ui }: { ui: Ui }) {
           last = now;
           if (tourStep >= 0 && now >= tourDue) {
             if (tourStep < NATIONS.length - 1) {
-              focusSettlement(tourStep + 1, false);
+              focusSettlement(tourStep + 1);
               tourStep++;
               tourDue = now + TOUR_HOLD;
             } else {
@@ -282,8 +281,7 @@ export default function WorldGlobe({ ui }: { ui: Ui }) {
             redraw();
           } else kick();
         };
-        const focusSettlement = (i: number, manual: boolean) => {
-          if (manual) stopTour();
+        const focusSettlement = (i: number) => {
           const nat = NATIONS[i];
           from = { yaw, pitch, distance, lift };
           to = {
@@ -391,7 +389,6 @@ export default function WorldGlobe({ ui }: { ui: Ui }) {
         canvas.addEventListener('keydown', onKey);
 
         api.current = {
-          focus: (i: number) => focusSettlement(i, true),
           rotate: turnBy,
           overview: () => showOverview(true),
           toggleTour: () => {
@@ -403,7 +400,7 @@ export default function WorldGlobe({ ui }: { ui: Ui }) {
             tourStep = 0;
             tourDue = performance.now() + TOUR_HOLD;
             setTouring(true);
-            focusSettlement(0, false);
+            focusSettlement(0);
           },
         };
 
@@ -502,19 +499,6 @@ export default function WorldGlobe({ ui }: { ui: Ui }) {
   const shipment = readout.shipments.find((s) => preferredRoute(s.route)) ?? readout.shipments[0];
   const eventRoute = event && GLOBE_ROUTES[event.route];
   const shipmentRoute = shipment && GLOBE_ROUTES[shipment.route];
-  const settlementButtons = () => NATIONS.map((n, i) => (
-    <button
-      key={n.id}
-      type="button"
-      aria-pressed={selected === i}
-      aria-label={`${n.id} · ${n.name}`}
-      onClick={() => api.current?.focus(i)}
-      disabled={!ready || failed}
-      className={`min-h-11 min-w-11 border px-2.5 font-mono text-[0.75rem] transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${selected === i ? 'border-signal text-signal' : 'border-rule text-ink-2 hover:border-ink-3 hover:text-ink'}`}
-    >
-      {n.id}
-    </button>
-  ));
   const navigationButtons = () => (
     <>
       <div className="flex gap-1" role="group" aria-label={ui.canvasLabel}>
@@ -550,19 +534,13 @@ export default function WorldGlobe({ ui }: { ui: Ui }) {
           className={`absolute inset-0 block h-full w-full touch-pan-y outline-none transition-opacity duration-700 motion-reduce:transition-none focus-visible:ring-1 focus-visible:ring-signal ${ready && !failed ? 'cursor-grab opacity-100 active:cursor-grabbing' : 'pointer-events-none opacity-0'}`}
         />
         <div ref={labelsRef} aria-hidden="true" className={`yk-globe-tags pointer-events-none absolute inset-0 overflow-hidden ${ready && !failed ? 'opacity-100' : 'opacity-0'}`} />
-        <div className="absolute inset-x-2 bottom-2 z-10 border border-rule bg-paper/90 p-2 backdrop-blur-sm sm:hidden">
-          <p className="mb-1 font-mono text-[0.625rem] tracking-[0.06em] text-ink-3">{ui.choose}{selected >= 0 && ` · ${NATIONS[selected].name}`}</p>
-          <div className="flex justify-center gap-1">{settlementButtons()}</div>
-          <div className="mt-1 flex items-center justify-center gap-1 font-mono text-[0.625rem] tracking-[0.02em]">{navigationButtons()}</div>
+        <div className="absolute inset-x-2 bottom-2 z-10 flex flex-wrap items-center justify-center gap-1 border border-rule bg-paper/90 p-2 font-mono text-[0.625rem] tracking-[0.02em] backdrop-blur-sm sm:hidden">
+          {navigationButtons()}
         </div>
       </div>
 
       <div className="relative mx-auto mt-4 max-w-[44rem] lg:bg-paper/70 lg:p-4 lg:backdrop-blur-[2px]">
         {failed && <p role="status" className="mb-3 border-l-2 border-rule pl-3 text-[0.75rem] leading-relaxed text-ink-2">{ui.staticNotice}</p>}
-        <div className="hidden flex-wrap items-center gap-x-4 gap-y-3 sm:flex">
-          <span className="label">{ui.choose}</span>
-          <div className="flex flex-wrap gap-1.5">{settlementButtons()}</div>
-        </div>
         <div className="mt-3 hidden flex-wrap items-center gap-2 font-mono text-[0.6875rem] tracking-[0.05em] sm:flex">{navigationButtons()}</div>
         {ready && !motionAvailable && <p className="mt-2 text-[0.6875rem] leading-relaxed text-ink-3">{ui.tourUnavailable}</p>}
         {ready && !failed && (
