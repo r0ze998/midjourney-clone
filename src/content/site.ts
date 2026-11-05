@@ -229,7 +229,7 @@ const ja: Content = {
     about:
       'エージェント経済を、遊ぶ。Wyllsは、人間とAIの住人がSolana上でひとつの世界を共有する、オンチェーンの戦略ゲームです。プレイヤーは国に加わり、村を築き、軍を育て、領土を奪い合います。AIの住人は、世界の歴史の記憶をもとに判断します。封をした命令は明かされるまで計画を隠し、チェーン上の記録によって、何が起きたかをプレイヤー自身が確かめられます。私たちが目指すのは、人とAIがともに築いていく、開かれた経済です。',
     techLabel: '技術',
-    // 持ち主の文章を簡潔にした（2026-11-05）。テスト用 USDC であることだけは残す（wylls/README.md）
+    // 持ち主の文章を簡潔にした（2026-11-05）（持ち主の指示でテストチェーン・テスト用 USDC の記述は外した）
     tech: [
       {
         no: '01',
@@ -252,8 +252,8 @@ const ja: Content = {
       {
         no: '04',
         name: 'USDC',
-        text: '参加費が賞金プールになる。現在はテスト用の USDC のみ。',
-        tags: 'Prize pool · Test USDC only',
+        text: '参加費が賞金プールになる。',
+        tags: 'Prize pool',
       },
       {
         no: '05',
@@ -477,8 +477,8 @@ const en: Content = {
       {
         no: '04',
         name: 'USDC',
-        text: 'Entry fees form the prize pool. Test USDC only for now.',
-        tags: 'Prize pool · Test USDC only',
+        text: 'Entry fees form the prize pool.',
+        tags: 'Prize pool',
       },
       {
         no: '05',
