@@ -118,14 +118,7 @@ export type Content = {
     globe: {
       label: string;
       canvasLabel: string;
-      rotateLeft: string;
-      rotateRight: string;
-      overview: string;
-      tour: string;
-      stopTour: string;
-      tourUnavailable: string;
       staticNotice: string;
-      selectedStock: string;
       shipment: string;
       departed: string;
       arrived: string;
@@ -255,19 +248,12 @@ const ja: Content = {
     globe: {
       label: 'ひとつの世界と、6 つの集落',
       canvasLabel: '回せる球体の模型。6 つの集落と、集落をめぐる荷の流れ。ドラッグまたは矢印キーで回せます。',
-      rotateLeft: '左へ回す',
-      rotateRight: '右へ回す',
-      overview: '全体を見る',
-      tour: '6 集落を巡る',
-      stopTour: '案内を止める',
-      tourUnavailable: '動きを減らす設定や低性能の端末では、自動案内を停止します。',
-      staticNotice: '静止画像を表示しています。回転と自動案内は利用できません。',
-      selectedStock: '集落の在庫',
+      staticNotice: '静止画像を表示しています。回転操作は利用できません。',
       shipment: '運搬中',
       departed: '出発',
       arrived: '到着',
       units: '単位',
-      hint: 'ドラッグまたは左右のボタンで回せます。「6 集落を巡る」で各集落を順に近くで見られます。',
+      hint: 'ドラッグやタッチで回せます。キーボードでは球体にフォーカスして矢印キーを使います。',
       note: 'ワールド・ゲームの考え方を描いた模式図です。地形・集落・物流は、実際の地理や Wylls のゲーム内容ではありません。',
       stillAlt: '球体の模型。緑の大陸に 6 つの集落があり、集落のあいだを荷が弧を描いて運ばれている。',
     },
@@ -408,19 +394,12 @@ const en: Content = {
     globe: {
       label: 'One world, six settlements',
       canvasLabel: 'A globe you can turn: six settlements and the goods that travel between them. Drag, or use the arrow keys.',
-      rotateLeft: 'Turn left',
-      rotateRight: 'Turn right',
-      overview: 'Overview',
-      tour: 'Tour six settlements',
-      stopTour: 'Stop tour',
-      tourUnavailable: 'The automatic tour is paused on devices set to reduce motion or with limited performance.',
-      staticNotice: 'A still image is shown. Rotation and the automatic tour are unavailable.',
-      selectedStock: 'At settlement',
+      staticNotice: 'A still image is shown. Rotation is unavailable.',
       shipment: 'In transit',
       departed: 'Departed',
       arrived: 'Arrived',
       units: 'units',
-      hint: 'Drag or use the left and right buttons to turn. “Tour six settlements” visits each one up close.',
+      hint: 'Drag or swipe to turn. On a keyboard, focus the globe and use the arrow keys.',
       note: 'A schematic of the World Game idea. The land, settlements and logistics are not real geography and not Wylls game content.',
       stillAlt: 'A globe: six settlements on green continents, with goods carried between them along arcs.',
     },

@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from 'react';
 import type { Content } from '../content/site';
 import { globeUi } from '../content/site';
 import { GLOBE_EVENT_SPAN, GLOBE_ROUTES, GLOBE_START, GLOBE_TOTAL, NATIONS, globeState } from '../model/globe';
-import { IDLE_RETURN } from '../model/timeline';
 import { model } from '../model/store';
 
 type Ui = Content['origin']['globe'];
@@ -11,17 +10,15 @@ type Ui = Content['origin']['globe'];
 const DEG = Math.PI / 180;
 const BASE_PITCH = 16 * DEG;
 const AUTO_SPEED = 0.07; // rad/s
-const FOCUS_DISTANCE = 0.52;
-const MOBILE_FOCUS_LIFT = 0.17;
-const TOUR_HOLD = 4800;
+const RESUME_DELAY = 1200;
 const STATIC_CLOCK = GLOBE_EVENT_SPAN + 0.25;
 const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
 const ease = (k: number) => 1 - Math.pow(1 - k, 3);
 
 /**
  * 「ワールド・ゲーム」の球体の模型。画面に近づいたときだけ three.js を読み込み、見えている間だけ描く。
- * 自動でゆっくり回り、ドラッグ（スマホは横だけ。縦はページのスクロール）や回転ボタンで操作を渡す。
- * 25 秒触らなければ自動に戻る（上の模型と同じ規則）。動きを減らす設定では止めた絵で、操作したときだけ描き直す。
+ * 自動でゆっくり回り、ドラッグ（スマホは横だけ。縦はページのスクロール）や矢印キーで操作を渡す。
+ * 操作後はゆっくり自動回転に戻る。動きを減らす設定では、操作したときだけ描き直す。
  */
 export default function WorldGlobe({ ui }: { ui: Ui }) {
   const host = useRef<HTMLDivElement>(null);
@@ -29,15 +26,7 @@ export default function WorldGlobe({ ui }: { ui: Ui }) {
   const labelsRef = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
-  const [selected, setSelected] = useState(-1);
-  const [touring, setTouring] = useState(false);
-  const [motionAvailable, setMotionAvailable] = useState(false);
   const [readout, setReadout] = useState(() => globeState(GLOBE_START));
-  const api = useRef<{
-    rotate: (direction: -1 | 1) => void;
-    overview: () => void;
-    toggleTour: () => void;
-  } | null>(null);
 
   useEffect(() => {
     const el = host.current;
@@ -70,9 +59,11 @@ export default function WorldGlobe({ ui }: { ui: Ui }) {
         const { buildGlobe } = await import('../model3d/globe3d');
         if (cancelled) return;
         const capture = new URLSearchParams(window.location.search).has('capture');
-        const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches || !!qa?.has('reduced-motion');
+        const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+        const forcedReduced = !!qa?.has('reduced-motion');
+        let still = motionQuery.matches || forcedReduced;
         const weak = (navigator.hardwareConcurrency ?? 4) <= 2 || ((navigator as { deviceMemory?: number }).deviceMemory ?? 4) <= 2;
-        let still = reduced || weak;
+        let lowResolution = weak;
 
         const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: capture });
         disposeRenderer = () => {
@@ -99,7 +90,7 @@ export default function WorldGlobe({ ui }: { ui: Ui }) {
         scene.add(rim);
 
         const tb = performance.now();
-        const globe = buildGlobe({ rich: !still && window.innerWidth >= 768 });
+        const globe = buildGlobe({ rich: !still && !weak && window.innerWidth >= 768 });
         const buildMs = performance.now() - tb;
         performance.measure('yk-globe-build', { start: tb, end: tb + buildMs });
         scene.add(globe.root);
@@ -123,11 +114,10 @@ export default function WorldGlobe({ ui }: { ui: Ui }) {
         let from = { yaw, pitch, distance, lift };
         let to: { yaw: number; pitch: number; distance: number; lift: number } | null = null;
         let moveT = 0;
-        let mode: 'auto' | 'user' = 'auto';
         let lastInput = 0;
+        let spin = AUTO_SPEED;
         let sel = -1;
-        let tourStep = -1;
-        let tourDue = 0;
+        let drag: { x: number; y: number; yaw: number; pitch: number; id: number; engaged: boolean } | null = null;
         let clock = still ? STATIC_CLOCK : 0;
         let size = { w: 0, h: 0 };
         let visible = false;
@@ -136,26 +126,25 @@ export default function WorldGlobe({ ui }: { ui: Ui }) {
         let frames = 0;
         let cost = 0;
         let lastPublish = 0;
-        const mobileLift = () => window.innerWidth < 640 ? MOBILE_FOCUS_LIFT : 0;
 
         const resize = () => {
           const w = el.clientWidth;
           const h = el.clientHeight;
           if (!w || !h || (w === size.w && h === size.h)) return;
           size = { w, h };
-          renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, still ? 1.25 : 1.75));
+          renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, lowResolution || still ? 1 : 1.75));
           renderer.setSize(w, h, false);
           camera.aspect = w / h;
           // 球が枠の 78% ほどに収まる距離
           fitDistance = 1.18 / Math.tan((camera.fov * DEG) / 2) / Math.min(1, camera.aspect) / 0.78;
           if (to) {
             from = { yaw, pitch, distance, lift };
-            to.distance = sel < 0 ? fitDistance : fitDistance * FOCUS_DISTANCE;
-            to.lift = sel < 0 ? 0 : mobileLift();
+            to.distance = fitDistance;
+            to.lift = 0;
             moveT = 0;
           } else {
-            distance = sel < 0 ? fitDistance : fitDistance * FOCUS_DISTANCE;
-            lift = sel < 0 ? 0 : mobileLift();
+            distance = fitDistance;
+            lift = 0;
           }
           camera.position.set(0, 0, distance);
           camera.updateProjectionMatrix();
@@ -202,24 +191,9 @@ export default function WorldGlobe({ ui }: { ui: Ui }) {
           if (cancelled) return;
           const dt = Math.min(0.1, (now - last) / 1000);
           last = now;
-          if (tourStep >= 0 && now >= tourDue) {
-            if (tourStep < NATIONS.length - 1) {
-              focusSettlement(tourStep + 1);
-              tourStep++;
-              tourDue = now + TOUR_HOLD;
-            } else {
-              showOverview(false);
-              stopTour();
-            }
-          }
-          if (mode === 'user' && !to && tourStep < 0 && now - lastInput > IDLE_RETURN * 1000) {
-            mode = 'auto';
-            sel = -1;
-            setSelected(-1);
-            from = { yaw, pitch, distance, lift };
-            to = { yaw, pitch: BASE_PITCH, distance: fitDistance, lift: 0 };
-            moveT = 0;
-          }
+          const resume = !drag?.engaged && now - lastInput >= RESUME_DELAY;
+          const targetSpin = resume ? AUTO_SPEED : 0;
+          spin += (targetSpin - spin) * (1 - Math.exp(-dt / 1.1));
           if (to) {
             moveT = Math.min(1, moveT + dt / 1.5);
             const k = ease(moveT);
@@ -228,23 +202,22 @@ export default function WorldGlobe({ ui }: { ui: Ui }) {
             distance = from.distance + (to.distance - from.distance) * k;
             lift = from.lift + (to.lift - from.lift) * k;
             if (moveT >= 1) to = null;
-          } else if (mode === 'auto') {
-            yaw += AUTO_SPEED * dt;
-            pitch += (BASE_PITCH - pitch) * Math.min(1, dt * 0.8);
+          } else if (!drag?.engaged) {
+            yaw += spin * dt;
+            if (resume) pitch += (BASE_PITCH - pitch) * (1 - Math.exp(-dt / 2.5));
           }
           clock += dt;
           const t0 = performance.now();
           let st = draw(GLOBE_START + clock);
-          // 重い端末は、10 フレームで止めた絵に切り替える
+          // 重い端末は解像度を下げて、動きを保つ。
           if (frames < 12) {
             frames++;
             if (frames > 2) cost += Math.max(performance.now() - t0, dt * 1000);
-            if (frames === 12 && cost / 10 > 50) {
-              still = true;
-              clock = Math.max(clock, STATIC_CLOCK);
+            if (frames === 12 && cost / 10 > 50 && !lowResolution) {
+              lowResolution = true;
+              size = { w: 0, h: 0 };
+              resize();
               st = draw(GLOBE_START + clock);
-              setMotionAvailable(false);
-              stopTour();
             }
           }
           if (now - lastPublish > 250) {
@@ -254,7 +227,7 @@ export default function WorldGlobe({ ui }: { ui: Ui }) {
           if (!still && visible && document.visibilityState === 'visible' && !raf) raf = requestAnimationFrame(frame);
         };
         const kick = () => {
-          if (!raf && !capture) {
+          if (!raf && !capture && !still && visible && document.visibilityState === 'visible') {
             last = performance.now();
             raf = requestAnimationFrame(frame);
           }
@@ -266,11 +239,6 @@ export default function WorldGlobe({ ui }: { ui: Ui }) {
           } else kick();
         };
 
-        const stopTour = () => {
-          if (tourStep < 0) return;
-          tourStep = -1;
-          setTouring(false);
-        };
         const settleMove = () => {
           if (still && to) {
             yaw = to.yaw;
@@ -281,70 +249,39 @@ export default function WorldGlobe({ ui }: { ui: Ui }) {
             redraw();
           } else kick();
         };
-        const focusSettlement = (i: number) => {
-          const nat = NATIONS[i];
-          from = { yaw, pitch, distance, lift };
-          to = {
-            yaw: yaw + wrap(-nat.lon * DEG - yaw),
-            pitch: Math.max(-50 * DEG, Math.min(50 * DEG, nat.lat * DEG)),
-            distance: fitDistance * FOCUS_DISTANCE,
-            lift: mobileLift(),
-          };
-          moveT = 0;
-          mode = 'user';
-          sel = i;
-          lastInput = performance.now();
-          setSelected(i);
-          settleMove();
-        };
-        const showOverview = (manual: boolean) => {
-          if (manual) stopTour();
-          from = { yaw, pitch, distance, lift };
-          to = { yaw, pitch: BASE_PITCH, distance: fitDistance, lift: 0 };
-          moveT = 0;
-          mode = 'user';
-          sel = -1;
-          lastInput = performance.now();
-          setSelected(-1);
-          settleMove();
-        };
         const turnBy = (direction: -1 | 1) => {
-          stopTour();
           from = { yaw, pitch, distance, lift };
-          to = { yaw: yaw + direction * 20 * DEG, pitch: BASE_PITCH, distance: fitDistance, lift: 0 };
+          to = { yaw: yaw + direction * 20 * DEG, pitch, distance: fitDistance, lift: 0 };
           moveT = 0;
-          mode = 'user';
-          sel = -1;
           lastInput = performance.now();
-          setSelected(-1);
+          spin = 0;
           settleMove();
         };
 
         // 操作：ドラッグで回す。スマホでは横の動きだけを拾い、縦はページのスクロールに任せる
-        let drag: { x: number; y: number; yaw: number; pitch: number; id: number; moved: boolean } | null = null;
         const onDown = (e: PointerEvent) => {
-          stopTour();
-          drag = { x: e.clientX, y: e.clientY, yaw, pitch, id: e.pointerId, moved: false };
-          to = null;
-          mode = 'user';
-          lastInput = performance.now();
+          if (!e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0)) return;
+          const engaged = e.pointerType === 'mouse';
+          drag = { x: e.clientX, y: e.clientY, yaw, pitch, id: e.pointerId, engaged };
+          if (engaged) {
+            to = null;
+            lastInput = performance.now();
+            spin = 0;
+          }
           canvas.setPointerCapture(e.pointerId);
         };
         const onMove = (e: PointerEvent) => {
           if (!drag || e.pointerId !== drag.id) return;
           const dx = e.clientX - drag.x;
           const dy = e.clientY - drag.y;
-          if (e.pointerType !== 'mouse' && Math.abs(dx) <= Math.max(4, Math.abs(dy) * 1.1)) return;
-          if (!drag.moved) {
-            if (Math.abs(dx) < 4 && Math.abs(dy) < 4) return;
-            drag.moved = true;
-            if (sel >= 0) {
-              sel = -1;
-              setSelected(-1);
-              from = { yaw, pitch, distance, lift };
-              to = { yaw, pitch, distance: fitDistance, lift: 0 };
-              moveT = 0;
-            }
+          if (!drag.engaged) {
+            if (Math.abs(dx) <= Math.max(4, Math.abs(dy) * 1.1)) return;
+            drag.engaged = true;
+            // 縦スクロールの間は回し続け、横操作と分かってから現在位置を基準にする。
+            drag.yaw = yaw;
+            drag.pitch = pitch;
+            to = null;
+            spin = 0;
           }
           const k = 3.4 / Math.max(240, size.w);
           yaw = drag.yaw + dx * k;
@@ -357,7 +294,10 @@ export default function WorldGlobe({ ui }: { ui: Ui }) {
           redraw();
         };
         const onUp = (e: PointerEvent) => {
-          if (drag && e.pointerId === drag.id) drag = null;
+          if (drag && e.pointerId === drag.id) {
+            if (drag.engaged) lastInput = performance.now();
+            drag = null;
+          }
         };
         const onKey = (e: KeyboardEvent) => {
           if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
@@ -367,7 +307,6 @@ export default function WorldGlobe({ ui }: { ui: Ui }) {
           }
           if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
           e.preventDefault();
-          stopTour();
           from = { yaw, pitch, distance, lift };
           to = {
             yaw,
@@ -376,10 +315,8 @@ export default function WorldGlobe({ ui }: { ui: Ui }) {
             lift: 0,
           };
           moveT = 0;
-          mode = 'user';
-          sel = -1;
-          setSelected(-1);
           lastInput = performance.now();
+          spin = 0;
           settleMove();
         };
         canvas.addEventListener('pointerdown', onDown);
@@ -387,22 +324,6 @@ export default function WorldGlobe({ ui }: { ui: Ui }) {
         canvas.addEventListener('pointerup', onUp);
         canvas.addEventListener('pointercancel', onUp);
         canvas.addEventListener('keydown', onKey);
-
-        api.current = {
-          rotate: turnBy,
-          overview: () => showOverview(true),
-          toggleTour: () => {
-            if (tourStep >= 0) {
-              stopTour();
-              return;
-            }
-            if (still) return;
-            tourStep = 0;
-            tourDue = performance.now() + TOUR_HOLD;
-            setTouring(true);
-            focusSettlement(0);
-          },
-        };
 
         const ro = new ResizeObserver(() => {
           resize();
@@ -413,7 +334,6 @@ export default function WorldGlobe({ ui }: { ui: Ui }) {
           ([e]) => {
             visible = e.isIntersecting;
             if (visible) {
-              if (tourStep >= 0) tourDue = performance.now() + TOUR_HOLD;
               kick();
             }
           },
@@ -423,27 +343,36 @@ export default function WorldGlobe({ ui }: { ui: Ui }) {
         const onVis = () => {
           last = performance.now();
           if (document.visibilityState === 'visible') {
-            if (tourStep >= 0) tourDue = last + TOUR_HOLD;
             kick();
           }
         };
-        const onPageScroll = () => stopTour();
+        const onMotionChange = () => {
+          still = motionQuery.matches || forcedReduced;
+          if (still) {
+            cancelAnimationFrame(raf);
+            raf = 0;
+            redraw();
+          } else {
+            lastInput = performance.now();
+            spin = 0;
+            if (visible && document.visibilityState === 'visible') kick();
+          }
+        };
         document.addEventListener('visibilitychange', onVis);
-        window.addEventListener('scroll', onPageScroll, { passive: true });
+        motionQuery.addEventListener('change', onMotionChange);
 
         cleanup = () => {
           cancelAnimationFrame(raf);
           ro.disconnect();
           io.disconnect();
           document.removeEventListener('visibilitychange', onVis);
-          window.removeEventListener('scroll', onPageScroll);
+          motionQuery.removeEventListener('change', onMotionChange);
           canvas.removeEventListener('pointerdown', onDown);
           canvas.removeEventListener('pointermove', onMove);
           canvas.removeEventListener('pointerup', onUp);
           canvas.removeEventListener('pointercancel', onUp);
           canvas.removeEventListener('keydown', onKey);
           disposeRenderer?.();
-          api.current = null;
         };
         resize();
         await renderer.compileAsync(scene, camera);
@@ -451,7 +380,6 @@ export default function WorldGlobe({ ui }: { ui: Ui }) {
         setReadout(draw(GLOBE_START + clock));
         canvas.dataset.ready = '1';
         canvas.dataset.buildMs = buildMs.toFixed(1);
-        setMotionAvailable(!still);
         setReady(true);
         if (capture) {
           (window as unknown as { __ykGlobe: unknown }).__ykGlobe = {
@@ -493,22 +421,10 @@ export default function WorldGlobe({ ui }: { ui: Ui }) {
     };
   }, []);
 
-  const preferredRoute = (route: number) =>
-    selected < 0 || GLOBE_ROUTES[route].from === selected || GLOBE_ROUTES[route].to === selected;
-  const event = readout.events.find((e) => preferredRoute(e.route)) ?? readout.events[0];
-  const shipment = readout.shipments.find((s) => preferredRoute(s.route)) ?? readout.shipments[0];
+  const event = readout.events[0];
+  const shipment = readout.shipments[0];
   const eventRoute = event && GLOBE_ROUTES[event.route];
   const shipmentRoute = shipment && GLOBE_ROUTES[shipment.route];
-  const navigationButtons = () => (
-    <>
-      <div className="flex gap-1" role="group" aria-label={ui.canvasLabel}>
-        <button type="button" aria-label={ui.rotateLeft} title={ui.rotateLeft} disabled={!ready || failed} onClick={() => api.current?.rotate(-1)} className="min-h-11 min-w-11 border border-rule text-ink-2 transition-colors hover:border-ink-3 hover:text-ink disabled:cursor-not-allowed disabled:opacity-40">←</button>
-        <button type="button" aria-label={ui.rotateRight} title={ui.rotateRight} disabled={!ready || failed} onClick={() => api.current?.rotate(1)} className="min-h-11 min-w-11 border border-rule text-ink-2 transition-colors hover:border-ink-3 hover:text-ink disabled:cursor-not-allowed disabled:opacity-40">→</button>
-      </div>
-      <button type="button" disabled={!ready || failed || selected < 0} onClick={() => api.current?.overview()} className="min-h-11 border border-rule px-2 text-ink-2 transition-colors hover:border-ink-3 hover:text-ink disabled:cursor-not-allowed disabled:opacity-40 sm:px-3">{ui.overview}</button>
-      <button type="button" aria-pressed={touring} disabled={!ready || failed || !motionAvailable} onClick={() => api.current?.toggleTour()} className={`min-h-11 border px-2 transition-colors disabled:cursor-not-allowed disabled:opacity-40 sm:px-3 ${touring ? 'border-signal text-signal' : 'border-rule text-ink-2 hover:border-ink-3 hover:text-ink'}`}>{touring ? ui.stopTour : ui.tour}</button>
-    </>
-  );
 
   return (
     <div>
@@ -534,15 +450,10 @@ export default function WorldGlobe({ ui }: { ui: Ui }) {
           className={`absolute inset-0 block h-full w-full touch-pan-y outline-none transition-opacity duration-700 motion-reduce:transition-none focus-visible:ring-1 focus-visible:ring-signal ${ready && !failed ? 'cursor-grab opacity-100 active:cursor-grabbing' : 'pointer-events-none opacity-0'}`}
         />
         <div ref={labelsRef} aria-hidden="true" className={`yk-globe-tags pointer-events-none absolute inset-0 overflow-hidden ${ready && !failed ? 'opacity-100' : 'opacity-0'}`} />
-        <div className="absolute inset-x-2 bottom-2 z-10 flex flex-wrap items-center justify-center gap-1 border border-rule bg-paper/90 p-2 font-mono text-[0.625rem] tracking-[0.02em] backdrop-blur-sm sm:hidden">
-          {navigationButtons()}
-        </div>
       </div>
 
       <div className="relative mx-auto mt-4 max-w-[44rem] lg:bg-paper/70 lg:p-4 lg:backdrop-blur-[2px]">
         {failed && <p role="status" className="mb-3 border-l-2 border-rule pl-3 text-[0.75rem] leading-relaxed text-ink-2">{ui.staticNotice}</p>}
-        <div className="mt-3 hidden flex-wrap items-center gap-2 font-mono text-[0.6875rem] tracking-[0.05em] sm:flex">{navigationButtons()}</div>
-        {ready && !motionAvailable && <p className="mt-2 text-[0.6875rem] leading-relaxed text-ink-3">{ui.tourUnavailable}</p>}
         {ready && !failed && (
           <dl className="mt-4 grid grid-cols-3 border-y border-rule font-mono text-[0.6875rem] tracking-[0.06em]" lang="en">
             {[
@@ -559,13 +470,7 @@ export default function WorldGlobe({ ui }: { ui: Ui }) {
         )}
         {ready && !failed && (
           <div className="mt-3 grid gap-3 text-[0.75rem] leading-relaxed sm:grid-cols-2">
-            {selected >= 0 && (
-              <p className="border-l-2 border-signal pl-3 text-ink-2">
-                <span className="block font-mono text-[0.6875rem] uppercase tracking-[0.07em] text-ink-3">{NATIONS[selected].id} · {NATIONS[selected].name}</span>
-                {ui.selectedStock}: <span className="font-mono tabular-nums text-ink">{readout.stocks[selected]}</span> {ui.units}
-              </p>
-            )}
-            <div className={`border-l-2 border-rule pl-3 ${selected < 0 ? 'sm:col-span-2' : ''}`}>
+            <div className="border-l-2 border-rule pl-3 sm:col-span-2">
               <p className="font-mono text-[0.6875rem] uppercase tracking-[0.07em] text-ink-3">{ui.shipment}</p>
               {shipment && shipmentRoute && (
                 <>
@@ -578,7 +483,7 @@ export default function WorldGlobe({ ui }: { ui: Ui }) {
                 </>
               )}
             </div>
-            <p role="status" aria-live="polite" className="min-h-5 font-mono text-[0.6875rem] tracking-[0.04em] text-signal sm:col-span-2">
+            <p className="min-h-5 font-mono text-[0.6875rem] tracking-[0.04em] text-signal sm:col-span-2">
               {event && eventRoute && `${event.kind === 'depart' ? ui.departed : ui.arrived}: ${NATIONS[eventRoute.from].name} → ${NATIONS[eventRoute.to].name} · ${event.amount} ${ui.units}`}
             </p>
           </div>
