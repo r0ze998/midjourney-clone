@@ -202,6 +202,13 @@
   }
 }
 
+/* 球体を見ている間は、固定のヒーロー模型・注釈・静止画を背後に重ねない。 */
+html[data-globe-in-view='true'] .yk-world-stage,
+html[data-globe-in-view='true'] .yk-world-callouts,
+html[data-globe-in-view='true'] .yk-hero-fallback {
+  visibility: hidden;
+}
+
 /* 球体の模型の札（模型のコールアウトと同じ形を小さく） */
 .yk-globe-tags > div {
   will-change: transform;

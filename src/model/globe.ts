@@ -44,6 +44,8 @@ export const GLOBE_PERIOD = 30;
 export const GLOBE_TOTAL = 300;
 /** 始まりの時刻。最初から荷が道の上にあるように、60 秒先から始める */
 export const GLOBE_START = 60;
+/** 出発・到着の合図を見せる秒数。状態そのものはこの合図と無関係に進む */
+export const GLOBE_EVENT_SPAN = 2;
 
 const count = (t: number, offset: number) => (t < offset - 1e-9 ? 0 : Math.floor((t - offset + 1e-9) / GLOBE_PERIOD) + 1);
 
@@ -51,6 +53,7 @@ export type GlobeState = {
   t: number;
   stocks: number[];
   shipments: { route: number; progress: number; amount: number }[];
+  events: { route: number; kind: 'depart' | 'arrive'; age: number; amount: number }[];
   transit: number;
   stored: number;
 };
@@ -60,19 +63,30 @@ export function globeState(t: number): GlobeState {
   t = Math.max(0, Number.isFinite(t) ? t : 0);
   const stocks = NATIONS.map(() => 50);
   const shipments: GlobeState['shipments'] = [];
+  const events: GlobeState['events'] = [];
   let transit = 0;
   GLOBE_ROUTES.forEach((r, i) => {
     const departed = count(t, r.offset);
     const arrived = count(t, r.offset + r.duration);
     stocks[r.from] -= departed * r.amount;
     stocks[r.to] += arrived * r.amount;
+    // 同じ経路と時刻から、移動中の荷と出発・到着の合図を導く。
+    // 差分フレームを見ないので、タブ復帰・低 fps・静止画モードでも再現できる。
+    if (departed > 0) {
+      const age = t - (r.offset + (departed - 1) * GLOBE_PERIOD);
+      if (age >= 0 && age < GLOBE_EVENT_SPAN) events.push({ route: i, kind: 'depart', age, amount: r.amount });
+    }
+    if (arrived > 0) {
+      const age = t - (r.offset + r.duration + (arrived - 1) * GLOBE_PERIOD);
+      if (age >= 0 && age < GLOBE_EVENT_SPAN) events.push({ route: i, kind: 'arrive', age, amount: r.amount });
+    }
     if (departed > arrived) {
       const p = (t - r.offset - (departed - 1) * GLOBE_PERIOD) / r.duration;
       shipments.push({ route: i, progress: Math.max(0, Math.min(1 - Number.EPSILON, p)), amount: r.amount });
       transit += r.amount;
     }
   });
-  return { t, stocks, shipments, transit, stored: stocks.reduce((a, b) => a + b, 0) };
+  return { t, stocks, shipments, events, transit, stored: stocks.reduce((a, b) => a + b, 0) };
 }
 
 // 多角形ごとの囲み（内外判定の前に、外れているものを先に除く）
