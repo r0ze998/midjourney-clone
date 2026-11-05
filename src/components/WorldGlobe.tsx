@@ -47,6 +47,8 @@ export default function WorldGlobe({ ui }: { ui: Ui }) {
     if (!el || !canvas || !labelBox) return;
     let cancelled = false;
     let cleanup: (() => void) | null = null;
+    // buildGlobe などが例外を出しても、生成済みの WebGL コンテキストを必ず解放する。
+    let disposeRenderer: (() => void) | null = null;
 
     // 盤の WebGL が使えない場合も、固定のヒーロー画像を球体の上に重ねない。
     const visibility = new IntersectionObserver(
@@ -73,7 +75,11 @@ export default function WorldGlobe({ ui }: { ui: Ui }) {
         const weak = (navigator.hardwareConcurrency ?? 4) <= 2 || ((navigator as { deviceMemory?: number }).deviceMemory ?? 4) <= 2;
         let still = reduced || weak;
 
-        const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, powerPreference: 'high-performance' });
+        const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: capture });
+        disposeRenderer = () => {
+          disposeRenderer = null;
+          renderer.dispose();
+        };
         renderer.outputColorSpace = THREE.SRGBColorSpace;
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
         renderer.toneMappingExposure = 1.03;
@@ -439,7 +445,7 @@ export default function WorldGlobe({ ui }: { ui: Ui }) {
           canvas.removeEventListener('pointerup', onUp);
           canvas.removeEventListener('pointercancel', onUp);
           canvas.removeEventListener('keydown', onKey);
-          renderer.dispose();
+          disposeRenderer?.();
           api.current = null;
         };
         resize();
@@ -463,6 +469,7 @@ export default function WorldGlobe({ ui }: { ui: Ui }) {
       } catch {
         cleanup?.();
         cleanup = null;
+        disposeRenderer?.();
         if (!cancelled) setFailed(true);
       }
     };
@@ -485,6 +492,7 @@ export default function WorldGlobe({ ui }: { ui: Ui }) {
       delete document.documentElement.dataset.globeInView;
       model.globeActive = false;
       cleanup?.();
+      disposeRenderer?.();
     };
   }, []);
 
