@@ -5,6 +5,7 @@ import Rain from './Rain';
 import ModelControls, { ModelConsole, ModelReadout, ScrubArea } from './ModelControls';
 import ExternalLink from './ExternalLink';
 import FilmCollage from './FilmCollage';
+import Intro from './Intro';
 import WorldGlobe from './WorldGlobe';
 import { content, site, type Lang } from '../content/site';
 import { organizationJsonLd } from '../lib/metadata';
@@ -50,6 +51,7 @@ export default function HomePage({ lang }: { lang: Lang }) {
 
   return (
     <>
+      <Intro skip={c.introSkip} />
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:bg-ink focus:px-4 focus:py-2 focus:text-paper"

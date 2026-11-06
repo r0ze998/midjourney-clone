@@ -310,3 +310,15 @@ html[data-globe-in-view='true'] .yk-hero-fallback {
     font-size: 0.75rem;
   }
 }
+
+/* 導入のあいだ、サイトを黒く覆う（導入の層は z-index 100 でその上に出る） */
+html[data-intro] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: #000;
+}
+html[data-intro] body {
+  overflow: hidden;
+}

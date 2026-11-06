@@ -84,6 +84,8 @@ export type Content = {
   name: string;
   nameLatin: string;
   skip: string;
+  /** 導入を飛ばすボタン */
+  introSkip: string;
   externalHint: string;
   langSwitch: { label: string; href: string; hrefLang: Lang };
   nav: { label: string; href: string }[];
@@ -153,6 +155,7 @@ const ja: Content = {
   name: '株式会社雪風',
   nameLatin: 'YUKIKAZE INC.',
   skip: '本文へ移動',
+  introSkip: 'スキップ',
   externalHint: '（外部サイト）',
   langSwitch: { label: 'EN', href: '/en', hrefLang: 'en' },
   nav: [
@@ -367,6 +370,7 @@ const en: Content = {
   name: 'Yukikaze Inc.',
   nameLatin: '株式会社雪風',
   skip: 'Skip to content',
+  introSkip: 'Skip',
   externalHint: '(external site)',
   langSwitch: { label: 'JA', href: '/', hrefLang: 'ja' },
   nav: [
