@@ -84,7 +84,8 @@
 - `src/model3d/terminal.ts`：端末の絵（時刻 t だけで決まる）。起動ログ（`> boot world_117` …）、「A new world is waking up.」、雪風のロゴ（円錐と輪）のワイヤーフレームとクリックで増える輪郭、模型の state(turn) から作ったログ、「Make the world work.」。走査線・燐光のにじみ・四隅の暗さ。
 - `src/model3d/intro3d.ts`：暗い部屋の机・ランプ・低ポリのブラウン管 PC とキーボード（`props.ts` の `crtMonitor`・`keyboard`）。画面は少し膨らんだ面に端末の絵を貼る。カメラは t で寄る。
 - `src/components/Intro.tsx`：全面の層。後半は 2D の全面の端末に切り替え、白い光でサイトへ溶ける（約 6.6 秒）。Skip ボタン・Esc・Enter・クリックで飛ばせる。終わると本文の先頭へフォーカス。
-- 出すかどうかは `src/app/introGate.ts` のインラインスクリプトが描く前に決める（セッションごとに 1 回、動きを減らす設定と ?capture では出さない、?intro=1 で必ず出す）。出す間は CSS でサイトを黒く覆う。15 秒で覆いを自動で外す。
+- 出すかどうかは `src/app/introGate.ts` のインラインスクリプトが描く前に決める（セッションごとに 1 回、動きを減らす設定と ?capture では出さない、?intro=1 で必ず出す）。
+- 撮影用（拍ごとの静止画の確認・書き出し）は `?intro=1&introCapture=1`。自動では進まず、`window.__ykIntro.render(t)` で 1 コマずつ描く。`?intro=1` だけなら普通に最後まで流れる（以前は `?intro=1` で撮影用になり、黒い画面のまま止まっていた）。出す間は CSS でサイトを黒く覆う。15 秒で覆いを自動で外す。
 - 重い端末（最初の数コマが遅い）と WebGL がない端末は、3D の部屋をやめて 2D の端末だけで流す。
 - 導入のコードは後から読む 6KB（gzip）。three.js は模型と共有。
 

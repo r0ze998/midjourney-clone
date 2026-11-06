@@ -6,6 +6,10 @@ import { useEffect, useRef, useState } from 'react';
  * 表示するかどうかは、<head> のインラインスクリプトが html[data-intro] を立てて決める
  * （動きを減らす設定・?capture・2 回目以降は立てない）。立っていなければ何もしない。
  * three.js の部屋 → 画面いっぱいの 2D の端末 → 白い光でサイトへ。Skip・Esc・Enter・クリックで飛ばせる。
+ *
+ * パラメータ：
+ * - ?intro=1                  既視でも・動きを減らす設定でも、必ず流す（強制再生。最後まで流れて自動で終わる）
+ * - ?intro=1&introCapture=1   撮影用。自動では進めず、window.__ykIntro.render(t) で時刻 t の 1 コマを描く
  */
 export default function Intro({ skip }: { skip: string }) {
   const [active, setActive] = useState(false);
@@ -60,7 +64,9 @@ export default function Intro({ skip }: { skip: string }) {
         const canvas3 = c3.current!;
         const canvas2 = c2.current!;
         const font = getComputedStyle(html).getPropertyValue('--font-geist-mono').trim() || undefined;
-        const capture = new URLSearchParams(location.search).has('intro');
+        // ?intro=1 は強制再生（普通に最後まで流れる）。撮影用は ?intro=1&introCapture=1：
+        // ループを回さず、window.__ykIntro.render(t) で 1 コマずつ描く（拍ごとの静止画の確認・書き出し用）
+        const capture = new URLSearchParams(location.search).has('introCapture');
 
         // 画面の絵（3D の画面に貼る 4:3 の canvas）
         const scr = document.createElement('canvas');
