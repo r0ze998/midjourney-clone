@@ -4,7 +4,7 @@
 import { state } from '../model/state';
 import { nameOf } from '../model/world';
 
-export const INTRO_LENGTH = 6.6;
+export const INTRO_LENGTH = 11.6;
 
 export const BOOT = [
   '> boot world_117',
@@ -17,18 +17,21 @@ export const BOOT = [
 export const WAKE = 'A new world is waking up.';
 export const HEADLINE = 'Make the world work.';
 
-// 拍（秒）
+// 拍（秒）。場面ごとに間を変える：全体を見せる → 画面が点く → 起動ログを読ませる → 一文 → ロゴ → 寄り切って 2D へ → 見出し → 白い光
 export const T = {
-  lamp: 0.6,
-  bootStart: 0.6,
-  bootEnd: 2.5,
-  wakeStart: 2.55,
-  wakeEnd: 3.3,
-  logoStart: 3.4,
-  click: 4.15,
-  logsStart: 4.6,
-  headline: 5.55,
-  flash: 5.95,
+  lamp: 0.6, // ランプが灯る
+  pushStart: 3.0, // カメラが遠景から画面へ寄り始める
+  powerOn: 2.8, // ブラウン管が点く
+  bootStart: 3.35,
+  bootEnd: 5.6,
+  wakeStart: 5.85,
+  wakeEnd: 6.8,
+  logoStart: 7.25,
+  click: 8.15,
+  pushEnd: 8.6, // 画面いっぱい（ここで 2D へ渡す）
+  logsStart: 8.8,
+  headline: 9.6,
+  flash: 10.9,
 };
 
 const PHOSPHOR = '#7dffb0';
@@ -149,16 +152,108 @@ function drawCursor(g: CanvasRenderingContext2D, x: number, y: number, s: number
   g.restore();
 }
 
+// ---- MATRIX のコードの雨（時刻 t だけで決まる） ----
+const GLYPHS = 'ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜｦﾝ0123456789Z:・"=*+-<>¦';
+const hash = (a: number, b = 0, c = 0) => {
+  let x = Math.imul(a | 0, 374761393) ^ Math.imul(b | 0, 668265263) ^ Math.imul(c | 0, 2147483647);
+  x = Math.imul(x ^ (x >>> 13), 1274126177);
+  return ((x ^ (x >>> 16)) >>> 0) / 4294967296;
+};
+
+/**
+ * コードの雨。size は 1 文字の高さ（px）。
+ * start を渡すと、その時刻から上から降り注ぎ始める（列ごとに少しずつずれて）。渡さなければ、ずっと降り続ける。
+ */
+export function drawRain(
+  g: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  t: number,
+  o: { size: number; alpha?: number; density?: number; start?: number; font?: string; seed?: number },
+) {
+  const size = o.size;
+  const cols = Math.ceil(w / (size * 0.72));
+  const rows = Math.ceil(h / size) + 1;
+  const alpha = o.alpha ?? 1;
+  const seed = o.seed ?? 1;
+  g.save();
+  g.shadowBlur = 0;
+  g.font = `600 ${size * 0.86}px ${o.font || 'ui-monospace, monospace'}`;
+  g.textBaseline = 'top';
+  g.textAlign = 'center';
+  for (let i = 0; i < cols; i++) {
+    if (hash(i, seed, 1) > (o.density ?? 0.75)) continue;
+    const speed = 7 + hash(i, seed, 2) * 13; // 行/秒
+    const len = 6 + Math.floor(hash(i, seed, 3) * 22);
+    let head: number;
+    if (o.start !== undefined) {
+      head = (t - o.start - hash(i, seed, 4) * 0.35) * speed * 1.6;
+      if (head < 0) continue;
+    } else {
+      const period = rows + len + Math.floor(hash(i, seed, 5) * rows);
+      head = ((t * speed + hash(i, seed, 4) * period) % period + period) % period;
+    }
+    const hr = Math.floor(head);
+    const x = (i + 0.5) * size * 0.72;
+    for (let k = 0; k < len; k++) {
+      const r = hr - k;
+      if (r < 0 || r >= rows) continue;
+      const ch = GLYPHS[Math.floor(hash(i, r, Math.floor(t * (2 + hash(i, r) * 6)) + seed) * GLYPHS.length)];
+      const f = 1 - k / len;
+      // 先頭の 1 文字は白く光る（ぼかしは重いので使わず、色だけで）
+      g.fillStyle = k === 0 ? `rgba(225,255,235,${alpha})` : `rgba(${40 + 60 * f},${150 + 105 * f},${80 + 40 * f},${alpha * (0.15 + 0.85 * f * f)})`;
+      g.fillText(ch, x, r * size);
+    }
+  }
+  g.restore();
+}
+
+/** 映像の乱れ（横にずれる帯と、色のにじみ）。窓の時刻の中だけ、t で決まる強さ */
+function glitch(g: CanvasRenderingContext2D, w: number, h: number, t: number, k: number) {
+  if (k <= 0) return;
+  const step = Math.floor(t * 30);
+  const n = 3 + Math.floor(hash(step, 7) * 5);
+  for (let i = 0; i < n; i++) {
+    const y = Math.floor(hash(step, i, 1) * h);
+    const bh = Math.max(2, Math.floor(hash(step, i, 2) * h * 0.08 * k));
+    const dx = (hash(step, i, 3) - 0.5) * w * 0.12 * k;
+    const sc = g.canvas.height / h;
+    g.drawImage(g.canvas, 0, y * sc, g.canvas.width, bh * sc, dx, y, w, bh);
+  }
+  g.save();
+  g.globalCompositeOperation = 'lighter';
+  g.globalAlpha = 0.18 * k;
+  g.fillStyle = '#ff2bd6';
+  g.fillRect(0, Math.floor(hash(step, 9) * h), w, Math.max(1, h * 0.004));
+  g.fillStyle = '#29e7ff';
+  g.fillRect(0, Math.floor(hash(step, 10) * h), w, Math.max(1, h * 0.003));
+  g.restore();
+}
+
 /**
  * 端末の絵を描く。w×h の canvas に、時刻 t の画面。
  * zoomed：全面に出すとき（文字を大きく）。
  */
 export function drawTerminal(g: CanvasRenderingContext2D, w: number, h: number, t: number, opts: { zoomed?: boolean; font?: string } = {}) {
   // 基準の大きさ。全面に出すときは、スマホでも読めるよう下限を設ける
-  const u = opts.zoomed ? Math.max(Math.min(w, h * 1.35) / 1000, 0.62) : Math.min(w, h * 1.35) / 1000;
+  // ただし起動ログの一番長い行（約 600u px）が幅に収まる大きさまで
+  const u = opts.zoomed ? Math.min(Math.max(Math.min(w, h * 1.35) / 1000, 0.62), (w * 0.84) / 600) : Math.min(w, h * 1.35) / 1000;
   g.save();
   g.fillStyle = '#020604';
   g.fillRect(0, 0, w, h);
+
+  // ---- ブラウン管が点く：消えている画面 → 中央に光の線 → 上下に開く ----
+  const pk = (t - T.powerOn) / 0.55;
+  if (pk < 0) {
+    g.restore();
+    return;
+  }
+  if (pk < 1) {
+    const bh = Math.max(2, h * ease((pk - 0.3) / 0.7));
+    g.beginPath();
+    g.rect(0, h / 2 - bh / 2, w, bh);
+    g.clip();
+  }
 
   // 画面の光の地（中央が少し明るい）
   const bg = g.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, Math.max(w, h) * 0.7);
@@ -195,7 +290,7 @@ export function drawTerminal(g: CanvasRenderingContext2D, w: number, h: number, 
     let left2 = Math.floor(bootChars * k);
     let y = h * 0.12;
     const logoPhase = t >= T.logoStart;
-    const fade = logoPhase ? 1 - clamp((t - T.logoStart) / 0.5) * 0.65 : 1;
+    const fade = logoPhase ? 1 - clamp((t - T.logoStart) / 0.7) * 0.65 : 1;
     g.globalAlpha = fade;
     let lastX = left;
     let lastY = y;
@@ -219,7 +314,9 @@ export function drawTerminal(g: CanvasRenderingContext2D, w: number, h: number, 
     // 起きる世界の一文
     const wk = clamp((t - T.wakeStart) / (T.wakeEnd - T.wakeStart));
     if (t >= T.wakeStart) {
-      const fs2 = 44 * u;
+      // 一文は幅に収まる大きさに（スマホで切れないように）
+      g.font = mono(100);
+      const fs2 = Math.min(44 * u, ((w * 0.84) / g.measureText(WAKE).width) * 100);
       g.font = mono(fs2);
       g.fillStyle = PHOSPHOR;
       g.shadowBlur = 16 * u;
@@ -237,17 +334,17 @@ export function drawTerminal(g: CanvasRenderingContext2D, w: number, h: number, 
 
     // ---- ロゴ ----
     if (logoPhase) {
-      const lk = clamp((t - T.logoStart) / 0.55);
+      const lk = clamp((t - T.logoStart) / 0.75);
       const cx = w * 0.62;
       const cy = h * 0.42;
       const size = h * 0.2;
-      const rot = (t - T.logoStart) * 1.3;
+      const rot = (t - T.logoStart) * 0.95;
       g.lineWidth = Math.max(1, 2.4 * u);
       g.shadowBlur = 14 * u;
       drawLogo(g, cx, cy, size, rot, ease(lk), 1);
       // クリック後、輪郭が外へ何重にも増える
       if (t >= T.click) {
-        const ck = clamp((t - T.click) / 0.45);
+        const ck = clamp((t - T.click) / 0.6);
         for (let i = 1; i <= 5; i++) {
           const s = 1 + i * 0.16 * ease(ck);
           drawLogo(g, cx, cy, size * s, rot, 1, (1 - i / 6) * 0.75);
@@ -259,17 +356,21 @@ export function drawTerminal(g: CanvasRenderingContext2D, w: number, h: number, 
       const my = h * 0.86 + (cy + size * 0.05 - h * 0.86) * mk;
       const pressed = t >= T.click && t < T.click + 0.12;
       drawCursor(g, mx, my, 1.6 * u * 1.2, pressed);
+      // 押すと、コードの雨が上から画面いっぱいに降り注ぐ
+      if (t >= T.click) drawRain(g, w, h, t, { size: 24 * u, start: T.click + 0.05, density: 0.92, font: family, seed: 5 });
     }
   } else {
+    // ---- 背景にコードの雨（薄く）----
+    drawRain(g, w, h, t, { size: (opts.zoomed ? 20 : 22) * u, alpha: 0.28, density: 0.55, font: family, seed: 3 });
     // ---- ログが流れる（行番号つき） ----
     const fs = (opts.zoomed ? 22 : 24) * u;
     const lh = fs * 1.6;
     g.font = mono(fs);
     const rows = Math.ceil(h / lh) + 1;
-    const scroll = (t - T.logsStart) * 26; // 1 秒あたり 26 行
+    const scroll = (t - T.logsStart) * 14; // 1 秒あたり 14 行
     const first = Math.floor(scroll);
     const off = (scroll - first) * lh;
-    const headK = clamp((t - T.headline) / 0.25);
+    const headK = clamp((t - T.headline) / 0.4);
     g.globalAlpha = 1 - headK * 0.7;
     for (let r = 0; r < rows; r++) {
       const i = first + r;
@@ -281,6 +382,8 @@ export function drawTerminal(g: CanvasRenderingContext2D, w: number, h: number, 
       g.fillText(line, w * 0.05 + fs * 3.2, y);
     }
     g.globalAlpha = 1;
+    // 降り注いだ雨が、ログの上を抜けていく
+    if (t < T.logsStart + 1.2) drawRain(g, w, h, t, { size: 24 * u, start: T.click + 0.05, density: 0.92, font: family, seed: 5, alpha: 1 - clamp((t - T.logsStart) / 1.2) });
     // 見出しの帯
     if (t >= T.headline) {
       // 幅に収まる大きさに（スマホで切れないように）
@@ -300,6 +403,10 @@ export function drawTerminal(g: CanvasRenderingContext2D, w: number, h: number, 
     }
   }
 
+  // ---- 映像の乱れ：点いた直後、ロゴを押した瞬間、見出しが出る瞬間 ----
+  const win = (a: number, d: number) => (t >= a && t < a + d ? 1 - (t - a) / d : 0);
+  glitch(g, w, h, t, Math.max(win(T.powerOn + 0.5, 0.35), win(T.click, 0.3), win(T.headline - 0.05, 0.22) * 0.7, win(T.wakeStart + 0.9, 0.12) * 0.5));
+
   // ---- 走査線と四隅の暗さ（ブラウン管の質感） ----
   g.shadowBlur = 0;
   g.globalAlpha = 1;
@@ -315,4 +422,16 @@ export function drawTerminal(g: CanvasRenderingContext2D, w: number, h: number, 
   g.fillStyle = `rgba(180,255,210,${0.015 + 0.015 * Math.sin(t * 47)})`;
   g.fillRect(0, 0, w, h);
   g.restore();
+  if (pk < 1) {
+    // 点いた瞬間の光の線（横へ伸びて、開くにつれて消える）
+    const lw = w * ease(pk / 0.3);
+    const lh2 = Math.max(2, h * 0.008);
+    g.save();
+    g.globalAlpha = 1 - ease((pk - 0.25) / 0.75);
+    g.shadowColor = PHOSPHOR;
+    g.shadowBlur = h * 0.03;
+    g.fillStyle = '#eafff2';
+    g.fillRect(w / 2 - lw / 2, h / 2 - lh2 / 2, lw, lh2);
+    g.restore();
+  }
 }

@@ -2,10 +2,11 @@
 import { useEffect, useRef, useState } from 'react';
 
 /**
- * サイトを開いたときの導入（約 6.6 秒）。ブラウザのセッションごとに 1 回。
+ * サイトを開いたときの導入（約 11.6 秒）。ブラウザのセッションごとに 1 回。
  * 表示するかどうかは、<head> のインラインスクリプトが html[data-intro] を立てて決める
  * （動きを減らす設定・?capture・2 回目以降は立てない）。立っていなければ何もしない。
- * three.js の部屋 → 画面いっぱいの 2D の端末 → 白い光でサイトへ。Skip・Esc・Enter・クリックで飛ばせる。
+ * three.js の部屋（PC 全体 → ゆっくり画面へ寄る）→ 画面いっぱいの 2D の端末 → 白い光でサイトへ。Skip・Esc・Enter・クリックで飛ばせる。
+ * WebGL が使えない・最初の数コマが重い端末は 2D の端末だけ（ブラウン管が点くところから）。
  *
  * パラメータ：
  * - ?intro=1                  既視でも・動きを減らす設定でも、必ず流す（強制再生。最後まで流れて自動で終わる）
@@ -80,7 +81,17 @@ export default function Intro({ skip }: { skip: string }) {
         } catch {
           renderer = null;
         }
-        const world = renderer ? buildIntro(scr) : null;
+        // 準備の合間に一度ずつ手を離して、そのあいだの Skip・Esc にすぐ応える
+        const breathe = () => new Promise((r) => setTimeout(r, 0));
+        await breathe();
+        if (cancelled) return renderer?.dispose();
+        const world = renderer ? buildIntro(scr, renderer, { lowPower: window.innerWidth < 768 }) : null;
+        await breathe();
+        if (cancelled) {
+          renderer?.dispose();
+          world?.dispose();
+          return;
+        }
         if (renderer) {
           renderer.outputColorSpace = THREE.SRGBColorSpace;
           renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -104,7 +115,8 @@ export default function Intro({ skip }: { skip: string }) {
         let only2d = !renderer;
         // 時刻 t の 1 コマ
         const draw = (t: number) => {
-          const handoff = term.T.logsStart - 0.25;
+          // 縦長（スマホ）は、画面の文字が小さいうちに 2D へ渡す（ロゴの前）。横長は画面いっぱいに寄り切ってから
+          const handoff = w / h < 0.8 ? term.T.logoStart - 0.55 : term.T.pushEnd - 0.15;
           const mix = Math.max(0, Math.min(1, (t - handoff) / 0.3));
           if (!only2d && world && renderer && mix < 1) {
             term.drawTerminal(sg, scr.width, scr.height, t, { font });
@@ -114,7 +126,7 @@ export default function Intro({ skip }: { skip: string }) {
           const show2 = only2d ? 1 : mix;
           canvas2.style.opacity = String(show2);
           canvas3.style.opacity = String(only2d ? 0 : 1);
-          if (show2 > 0) term.drawTerminal(g2, w, h, only2d ? t : Math.max(t, term.T.logsStart), { zoomed: true, font });
+          if (show2 > 0) term.drawTerminal(g2, w, h, t, { zoomed: true, font });
           // 白い光
           const fk = (t - term.T.flash) / (term.INTRO_LENGTH - term.T.flash);
           if (flash.current) {
@@ -123,22 +135,34 @@ export default function Intro({ skip }: { skip: string }) {
           }
         };
         if (renderer && world) await renderer.compileAsync(world.scene, world.camera).catch(() => {});
-        if (cancelled) return;
+        if (cancelled) {
+          renderer?.dispose();
+          world?.dispose();
+          return;
+        }
 
         if (capture) (window as unknown as { __ykIntro: unknown }).__ykIntro = { render: (t: number) => draw(t), length: term.INTRO_LENGTH };
 
-        const start = performance.now();
+        // 2D だけのときは、部屋を見せる時間を飛ばして、ブラウン管が点く直前から始める
+        const skipTo = term.T.powerOn - 0.3;
+        let start = performance.now() - (only2d ? skipTo * 1000 : 0);
         let frames = 0;
         let slow = 0;
-        let last = start;
+        let last = performance.now();
         const loop = (now: number) => {
           if (cancelled) return;
-          const t = (now - start) / 1000;
-          // 最初の数コマが重ければ、3D の部屋をやめて 2D の端末だけにする
-          if (!only2d && frames < 10) {
+          let t = (now - start) / 1000;
+          // 最初の 40 コマのうち重いコマ（70ms 超、およそ 14fps 未満）が 8 つあれば、3D の部屋をやめて 2D の端末だけにする
+          if (!only2d && frames < 40) {
             frames++;
             if (frames > 2 && now - last > 70) slow++;
-            if (slow >= 4) only2d = true;
+            if (slow >= 8) {
+              only2d = true;
+              if (t < skipTo) {
+                start -= (skipTo - t) * 1000;
+                t = skipTo;
+              }
+            }
           }
           last = now;
           draw(t);

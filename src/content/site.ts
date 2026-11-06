@@ -155,7 +155,7 @@ const ja: Content = {
   name: '株式会社雪風',
   nameLatin: 'YUKIKAZE INC.',
   skip: '本文へ移動',
-  introSkip: 'スキップ',
+  introSkip: 'Skip',
   externalHint: '（外部サイト）',
   langSwitch: { label: 'EN', href: '/en', hrefLang: 'en' },
   nav: [
